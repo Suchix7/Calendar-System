@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import { loginUser, registerUser } from "./controllers/authController.js"; // Importing your new controller
 
 dotenv.config();
 
@@ -21,24 +22,26 @@ mongoose
     process.exit(1);
   });
 
-// --- Event Schema & Model ---
+// --- Event Schema & Model (Keeping your existing logic) ---
 const eventSchema = new mongoose.Schema(
   {
-    date: { type: String, required: true, unique: true }, // Format: YYYY-MM-DD
+    date: { type: String, required: true, unique: true },
     note: { type: String, required: true },
   },
   { timestamps: true },
 );
-
 const Event = mongoose.model("Event", eventSchema);
 
-// --- Routes ---
+// --- AUTH ROUTES ---
+// This connects the login function you wrote to the /api/auth/login URL
+app.post("/api/auth/login", loginUser);
+app.post("/api/auth/register", registerUser);
+// --- CALENDAR ROUTES ---
 
 // 1. PUBLIC: Get all calendar events
 app.get("/api/events", async (req, res) => {
   try {
     const events = await Event.find();
-    // Transform array to a simple object for React: { "2026-02-22": "Note text" }
     const eventMap = {};
     events.forEach((event) => {
       eventMap[event.date] = event.note;
@@ -50,19 +53,16 @@ app.get("/api/events", async (req, res) => {
 });
 
 // 2. ADMIN: Save or update an event
-// Note: Later we will add Auth Middleware here
 app.post("/api/events", async (req, res) => {
   const { date, note } = req.body;
-
-  if (!date || !note) {
+  if (!date || !note)
     return res.status(400).json({ error: "Date and note are required" });
-  }
 
   try {
     const updatedEvent = await Event.findOneAndUpdate(
       { date },
       { note },
-      { upsert: true, new: true }, // Upsert means: Create if not exists, update if it does
+      { upsert: true, new: true },
     );
     res.status(200).json(updatedEvent);
   } catch (err) {

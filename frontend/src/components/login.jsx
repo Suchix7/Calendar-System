@@ -1,19 +1,48 @@
 import React, { useState } from "react";
-import { Lock, Mail, Eye, EyeOff, Church } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, Church, Loader2 } from "lucide-react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const ChurchLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login attempt:", formData);
+    setLoading(true);
+    setError("");
+
+    try {
+      // 1. Make the request to your backend
+      const { data } = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        formData,
+      );
+
+      // 2. Save user info & token to LocalStorage
+      localStorage.setItem("userInfo", JSON.stringify(data));
+
+      // 3. Success! Redirect to your calendar/dashboard
+      console.log("Login successful");
+      navigate("/dashboard"); // or wherever your calendar is
+    } catch (err) {
+      // 4. Handle Errors
+      setError(
+        err.response?.data?.message ||
+          "Invalid email or password. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] flex items-center justify-center p-6 text-stone-800">
-      <div className="max-w-[420px] w-full">
-        {/* Branding/Logo Area */}
+    <div className="min-h-screen max-w-7xl w-150 flex items-center justify-center p-6 text-stone-800">
+      <div className=" w-full">
         <div className="flex flex-col items-center mb-10 text-center">
           <div className="w-14 h-14 bg-stone-100 rounded-full flex items-center justify-center border border-stone-200 shadow-sm mb-5">
             <Church className="text-stone-600 w-7 h-7" strokeWidth={1.5} />
@@ -26,10 +55,15 @@ const ChurchLogin = () => {
           </p>
         </div>
 
-        {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-stone-100 p-8 sm:p-10">
+          {/* Error Message Alert */}
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl text-center">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
             <div className="space-y-2">
               <label className="text-[12px] uppercase tracking-widest font-semibold text-stone-500 ml-1">
                 Email Address
@@ -44,11 +78,11 @@ const ChurchLogin = () => {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <label className="text-[12px] uppercase tracking-widest font-semibold text-stone-500 ml-1">
                 Password
@@ -63,6 +97,7 @@ const ChurchLogin = () => {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -74,17 +109,23 @@ const ChurchLogin = () => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-stone-800 hover:bg-stone-900 text-stone-50 font-medium py-3.5 rounded-xl shadow-sm transition-all active:scale-[0.98] mt-4 tracking-wide"
+              disabled={loading}
+              className="w-full bg-stone-800 hover:bg-stone-900 text-stone-50 font-medium py-3.5 rounded-xl shadow-sm transition-all active:scale-[0.98] mt-4 tracking-wide flex items-center justify-center gap-2"
             >
-              Sign In
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
         </div>
 
-        {/* Footer */}
         <div className="mt-10 text-center">
           <p className="text-stone-400 text-[11px] uppercase tracking-[0.2em] font-medium">
             Est. 2026 • Prakash Church
