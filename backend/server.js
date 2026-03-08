@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { loginUser, registerUser } from "./controllers/authController.js"; // Importing your new controller
-
+import { verifyToken } from "./middleware/auth.js";
 dotenv.config();
 
 const app = express();
@@ -53,7 +53,7 @@ app.get("/api/events", async (req, res) => {
 });
 
 // 2. ADMIN: Save or update an event
-app.post("/api/events", async (req, res) => {
+app.post("/api/events", verifyToken, async (req, res) => {
   const { date, note } = req.body;
   if (!date || !note)
     return res.status(400).json({ error: "Date and note are required" });
@@ -71,7 +71,7 @@ app.post("/api/events", async (req, res) => {
 });
 
 // 3. ADMIN: Delete an event
-app.delete("/api/events/:date", async (req, res) => {
+app.delete("/api/events/:date", verifyToken, async (req, res) => {
   try {
     await Event.findOneAndDelete({ date: req.params.date });
     res.status(200).json({ message: "Event deleted" });

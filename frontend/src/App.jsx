@@ -1,42 +1,74 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+} from "react-router-dom";
 import ChurchLogin from "./pages/LoginPage";
-import CalendarPage from "./pages/CalendarPage"; // Admin/Editable version
-import ReadCalendarPage from "./pages/ReadOnlyCalendarPage"; // Public version
+import CalendarPage from "./pages/CalendarPage";
+import ReadCalendarPage from "./pages/ReadOnlyCalendarPage";
+import ProtectedRoute from "../route/ProtectedRoute";
+
+// We create a separate Navigation component so we can use the useNavigate hook inside it
+function Navigation() {
+  const navigate = useNavigate();
+  // We check localStorage here so it refreshes when the component re-renders
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLoggedIn");
+    navigate("/login"); // This will now work
+  };
+
+  return (
+    <nav className="bg-white border-b p-4 flex gap-4 justify-center items-center text-sm font-medium text-indigo-600">
+      <Link to="/" className="hover:text-indigo-800">
+        Public View
+      </Link>
+
+      {isLoggedIn ? (
+        <>
+          <Link to="/calendar" className="hover:text-indigo-800">
+            Admin Calendar
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-semibold"
+          >
+            Logout
+          </button>
+        </>
+      ) : (
+        <Link to="/login" className="hover:text-indigo-800">
+          Login
+        </Link>
+      )}
+    </nav>
+  );
+}
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white border-b p-4 flex gap-6 justify-center text-sm font-medium text-black">
-          <Link
-            to="/"
-            className="hover:text-indigo-800 underline decoration-transparent hover:decoration-gray-500 transition-all"
-          >
-            Public Calendar
-          </Link>
-          {/* <Link to="/admin-calendar" className="hover:text-gray-800">
-            Admin View
-          </Link> */}
-          <Link to="/login" className="hover:text-gray-800">
-            Login
-          </Link>
-        </nav>
+      <div className="min-h-screen">
+        <Navigation />
 
-        <div className="p-4 flex justify-center">
-          <Routes>
-            <Route path="/" element={<ReadCalendarPage />} />
+        <Routes>
+          <Route path="/login" element={<ChurchLogin />} />
 
-            <Route path="/admin-calendar" element={<CalendarPage />} />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route path="/login" element={<ChurchLogin />} />
-
-            <Route
-              path="*"
-              element={<div className="p-10 text-center">Page Not Found</div>}
-            />
-          </Routes>
-        </div>
+          <Route path="/" element={<ReadCalendarPage />} />
+        </Routes>
       </div>
     </Router>
   );

@@ -1,25 +1,39 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
+  Loader2,
 } from "lucide-react";
+import axios from "axios"; // Ensure axios is imported
 
 export default function ReadOnlyCalendar() {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(null);
-
-  // Mock Data: In a real app, this would come from an API or Props
-  const events = {
-    "2024-05-15": "Community Garden Workshop",
-    "2024-05-20": "Town Hall Meeting",
-    "2024-06-02": "Annual Charity Gala",
-  };
+  const [events, setEvents] = useState({}); // State for backend data
+  const [isLoading, setIsLoading] = useState(true);
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  // Fetch real data from your MERN backend
+  useEffect(() => {
+    const fetchCalendarData = async () => {
+      try {
+        setIsLoading(true);
+        const res = await axios.get("http://localhost:5000/api/events");
+        // Your backend returns an object like { "YYYY-MM-DD": "Note" }
+        setEvents(res.data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCalendarData();
+  }, []);
 
   const firstDay = useMemo(
     () => new Date(currentYear, currentMonth, 1).getDay(),
@@ -60,7 +74,14 @@ export default function ReadOnlyCalendar() {
   );
 
   return (
-    <div className="w-full max-w-6xl bg-white rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-stone-100 shadow-sm">
+    <div className="w-full max-w-6xl bg-white rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-stone-100 shadow-sm relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-stone-400 animate-spin" />
+        </div>
+      )}
+
       {/* Main Calendar Section */}
       <div className="lg:col-span-2 p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8">
@@ -122,7 +143,7 @@ export default function ReadOnlyCalendar() {
                 </span>
                 {hasEvent && (
                   <div
-                    className={`w-1.5 h-1.5 rounded-full mt-2 ${selected ? "bg-stone-300" : "bg-amber-500"}`}
+                    className={`w-1.5 h-1.5 rounded-full mt-2 ${selected ? "bg-stone-300" : "bg-indigo-500"}`}
                   />
                 )}
               </button>
@@ -157,8 +178,11 @@ export default function ReadOnlyCalendar() {
               <span className="text-[10px] uppercase tracking-widest font-bold text-stone-400 block mb-2">
                 Scheduled Activity
               </span>
-              <p className="text-stone-600 leading-relaxed">
-                {events[selectedDate] || "No events scheduled for this date."}
+
+              {/* ADD 'whitespace-pre-wrap' HERE */}
+              <p className="text-stone-600 leading-relaxed italic whitespace-pre-wrap">
+                {events[selectedDate] ||
+                  "No public events scheduled for this date."}
               </p>
             </div>
           </motion.div>
