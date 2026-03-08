@@ -9,8 +9,24 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI;
-
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173", // Local Vite
+  "http://localhost:3000", // Local Create-React-App
+  "https://your-app-name.vercel.app", // YOUR ACTUAL VERCEL URL (Add this after deploying FE)
+];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error("CORS policy blocked this origin."), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // --- Database Connection ---
@@ -22,7 +38,6 @@ mongoose
     process.exit(1);
   });
 
-// --- Event Schema & Model (Keeping your existing logic) ---
 const eventSchema = new mongoose.Schema(
   {
     date: { type: String, required: true, unique: true },
