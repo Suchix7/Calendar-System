@@ -10,7 +10,7 @@ import ChurchLogin from "./pages/LoginPage";
 import CalendarPage from "./pages/CalendarPage";
 import ReadCalendarPage from "./pages/ReadOnlyCalendarPage";
 import ProtectedRoute from "../route/ProtectedRoute";
-
+import NotFound from "./pages/NotFound";
 // We create a separate Navigation component so we can use the useNavigate hook inside it
 function Navigation() {
   const navigate = useNavigate();
@@ -23,14 +23,14 @@ function Navigation() {
   };
 
   return (
-    <nav className="bg-white border-b p-4 flex gap-4 justify-center items-center text-sm font-medium text-indigo-600">
-      <Link to="/" className="hover:text-indigo-800">
+    <nav className="bg-white border-b p-4 flex gap-4 justify-center items-center text-sm font-medium text-black">
+      <Link to="/" className="hover:text-gray-800">
         Public View
       </Link>
 
       {isLoggedIn ? (
         <>
-          <Link to="/calendar" className="hover:text-indigo-800">
+          <Link to="/calendar" className="hover:text-gray-800">
             Admin Calendar
           </Link>
           <button
@@ -41,7 +41,7 @@ function Navigation() {
           </button>
         </>
       ) : (
-        <Link to="/login" className="hover:text-indigo-800">
+        <Link to="/login" className="hover:text-gray-800">
           Login
         </Link>
       )}
@@ -68,6 +68,7 @@ function App() {
           />
 
           <Route path="/" element={<ReadCalendarPage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>
