@@ -19,7 +19,7 @@ const ChurchLogin = () => {
     try {
       // 2. Use the variable here instead of the hardcoded localhost string
       const { data } = await axios.post(
-        `${API_BASE_URL}/api/auth/login`,
+        `${API_BASE_URL.replace(/\/$/, "")}/api/auth/login`,
         formData,
       );
 

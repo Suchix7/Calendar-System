@@ -12,7 +12,7 @@ const MONGO_URI = process.env.MONGODB_URI;
 const allowedOrigins = [
   "http://localhost:5173", // Local Vite
   "http://localhost:3000", // Local Create-React-App
-  "https://your-app-name.vercel.app", // YOUR ACTUAL VERCEL URL (Add this after deploying FE)
+  "https://prakashchurch.vercel.app", // YOUR ACTUAL VERCEL URL (Add this after deploying FE)
 ];
 app.use(
   cors({
