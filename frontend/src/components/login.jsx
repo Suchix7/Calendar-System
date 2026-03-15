@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Lock, Mail, Eye, EyeOff, Church, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const ChurchLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -17,20 +17,15 @@ const ChurchLogin = () => {
     setError("");
 
     try {
+      // 2. Use the variable here instead of the hardcoded localhost string
       const { data } = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         formData,
       );
 
       // --- THE FIX IS HERE ---
-      // 1. Save the whole user object (if you need name/email later)
       localStorage.setItem("userInfo", JSON.stringify(data));
-
-      // 2. Save the TOKEN specifically (this matches your Calendar's getAuthHeader)
-      // Note: check if your backend returns 'data.token' or 'data.accessToken'
       localStorage.setItem("token", data.token);
-
-      // 3. Save the login flag
       localStorage.setItem("isLoggedIn", "true");
 
       console.log("Login successful");
