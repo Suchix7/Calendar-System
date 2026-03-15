@@ -12,17 +12,20 @@ const MONGO_URI = process.env.MONGODB_URI;
 const allowedOrigins = [
   "http://localhost:5173", // Local Vite
   "http://localhost:3000", // Local Create-React-App
-  "https://prakashchurch.vercel.app", // YOUR ACTUAL VERCEL URL (Add this after deploying FE)
+  "https://prakashchurch.vercel.app",
+  "prakashchurch-vyqg48epb.vercel.app", // YOUR ACTUAL VERCEL URL (Add this after deploying FE)
 ];
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error("CORS policy blocked this origin."), false);
+      // Allow local development and your specific Vercel domain
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        // Instead of throwing an Error object (which causes 500),
+        // just tell CORS it's not allowed
+        callback(null, false);
       }
-      return callback(null, true);
     },
     credentials: true,
   }),
