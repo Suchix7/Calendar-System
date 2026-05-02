@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -9,19 +9,27 @@ import {
   Maximize2,
 } from "lucide-react";
 import api from "../api/axios";
+import NepaliDate from "nepali-date-converter";
 
 export default function ReadOnlyCalendar() {
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const detailsRef = useRef(null);
+  const npToday = useMemo(() => new NepaliDate(), []);
+  const [currentMonth, setCurrentMonth] = useState(npToday.getMonth());
+  const [currentYear, setCurrentYear] = useState(npToday.getYear());
   const [selectedDate, setSelectedDate] = useState(null);
   const [events, setEvents] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
+  // Today's AD format string to match against calendar cells
+  const todayAdFullDate = useMemo(() => {
+    const adObj = npToday.getAD();
+    return `${adObj.year}-${String(adObj.month + 1).padStart(2, "0")}-${String(adObj.date).padStart(2, "0")}`;
+  }, [npToday]);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const days = ["आइत", "सोम", "मङ्गल", "बुध", "बिही", "शुक्र", "शनि"];
 
   useEffect(() => {
     const fetchCalendarData = async () => {
@@ -39,11 +47,11 @@ export default function ReadOnlyCalendar() {
   }, []);
 
   const firstDay = useMemo(
-    () => new Date(currentYear, currentMonth, 1).getDay(),
+    () => new NepaliDate(currentYear, currentMonth, 1).getDay(),
     [currentMonth, currentYear],
   );
   const daysInMonth = useMemo(
-    () => new Date(currentYear, currentMonth + 1, 0).getDate(),
+    () => new NepaliDate(currentYear, currentMonth + 1, 0).getDate(),
     [currentMonth, currentYear],
   );
 
@@ -65,16 +73,49 @@ export default function ReadOnlyCalendar() {
     }
   };
 
-  const formatFullDate = (y, m, d) =>
-    `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const formatFullDate = (y, m, d) => {
+    const adDateObj = new NepaliDate(y, m, d).getAD();
+    return `${adDateObj.year}-${String(adDateObj.month + 1).padStart(2, "0")}-${String(adDateObj.date).padStart(2, "0")}`;
+  };
+
+  const overlappingAdMonths = useMemo(() => {
+    try {
+      const npFirstDate = new NepaliDate(currentYear, currentMonth, 1);
+      const adFirst = npFirstDate.getAD();
+      const d1 = new Date(adFirst.year, adFirst.month, adFirst.date);
+
+      const npLastDate = new NepaliDate(currentYear, currentMonth, daysInMonth);
+      const adLast = npLastDate.getAD();
+      const d2 = new Date(adLast.year, adLast.month, adLast.date);
+
+      const m1 = d1.toLocaleString("en-US", { month: "short" });
+      const m2 = d2.toLocaleString("en-US", { month: "short" });
+
+      return m1 === m2 ? m1 : `${m1}/${m2}`;
+    } catch {
+      return "";
+    }
+  }, [currentYear, currentMonth, daysInMonth]);
 
   const monthName = useMemo(
-    () =>
-      new Date(currentYear, currentMonth).toLocaleString("default", {
-        month: "long",
-      }),
+    () => new NepaliDate(currentYear, currentMonth, 1).format("MMMM", "np"),
     [currentMonth, currentYear],
   );
+
+  const yearNp = useMemo(
+    () => new NepaliDate(currentYear, currentMonth, 1).format("YYYY", "np"),
+    [currentYear, currentMonth],
+  );
+
+  const getSelectedBsDateString = (adDateStr) => {
+    if (!adDateStr) return "";
+    try {
+      const d = new Date(adDateStr);
+      return new NepaliDate(d).format("ddd, DD MMMM YYYY", "np");
+    } catch {
+      return adDateStr;
+    }
+  };
 
   const activeEventContent =
     events[selectedDate] || "No public events scheduled for this date.";
@@ -90,13 +131,18 @@ export default function ReadOnlyCalendar() {
         )}
 
         {/* Main Calendar Section */}
-        <div className="lg:col-span-2 p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8">
-            <h2 className="text-2xl font-serif font-medium text-stone-900">
+        <div className="lg:col-span-2 p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl flex items-baseline gap-2 font-serif font-medium text-stone-900">
               {monthName}{" "}
               <span className="text-stone-400 font-sans font-light">
-                {currentYear}
+                {yearNp}
               </span>
+              {overlappingAdMonths && (
+                <span className="text-stone-400 font-sans font-medium text-sm">
+                  ({overlappingAdMonths})
+                </span>
+              )}
             </h2>
 
             <div className="flex items-center gap-2">
@@ -115,11 +161,11 @@ export default function ReadOnlyCalendar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 mb-4">
+          <div className="grid grid-cols-7 mb-2 sm:mb-4">
             {days.map((d) => (
               <div
                 key={d}
-                className="text-center text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400"
+                className="text-center text-[9px] sm:text-[10px] uppercase tracking-wider sm:tracking-[0.2em] font-bold text-stone-400 leading-none truncate px-0.5"
               >
                 {d}
               </div>
@@ -132,26 +178,41 @@ export default function ReadOnlyCalendar() {
             ))}
             {Array.from({ length: daysInMonth }, (_, i) => {
               const day = i + 1;
-              const fullDate = formatFullDate(currentYear, currentMonth, day);
+              const npDate = new NepaliDate(currentYear, currentMonth, day);
+              const adDateObj = npDate.getAD();
+              const fullDate = `${adDateObj.year}-${String(adDateObj.month + 1).padStart(2, "0")}-${String(adDateObj.date).padStart(2, "0")}`;
               const hasEvent = Boolean(events[fullDate]);
               const selected = selectedDate === fullDate;
+              const isToday = fullDate === todayAdFullDate;
 
               return (
                 <button
                   key={fullDate}
-                  onClick={() => setSelectedDate(fullDate)}
-                  className={`relative p-2 sm:p-4 rounded-2xl text-sm transition-all flex flex-col items-center justify-center min-h-[64px] sm:min-h-[80px] border ${
+                  onClick={() => {
+                    setSelectedDate(fullDate);
+                    if (hasEvent) {
+                      setTimeout(() => {
+                        detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 100);
+                    }
+                  }}
+                  className={`relative p-1 sm:p-3 rounded-xl sm:rounded-2xl text-sm transition-all flex flex-col items-center justify-center min-h-[56px] sm:min-h-[80px] border ${
                     selected
                       ? "bg-stone-800 text-white border-stone-800 shadow-md"
+                      : isToday
+                      ? "bg-red-50/80 text-red-900 border-red-100 hover:bg-red-100/80"
                       : "bg-white text-stone-700 border-transparent hover:bg-stone-50"
                   }`}
                 >
-                  <span className={selected ? "font-bold" : "font-medium"}>
-                    {day}
+                  <span className={`text-base sm:text-xl ${selected ? "font-bold" : isToday ? "font-bold" : "font-medium"}`}>
+                    {npDate.format("D", "np")}
+                  </span>
+                  <span className={`absolute bottom-1 right-1 sm:bottom-2 sm:right-2 text-[8px] sm:text-xs font-sans ${selected ? "text-stone-300" : isToday ? "text-red-400" : "text-stone-400"}`}>
+                    {adDateObj.date}
                   </span>
                   {hasEvent && (
                     <div
-                      className={`w-1.5 h-1.5 rounded-full mt-2 ${selected ? "bg-stone-300" : "bg-gray-500"}`}
+                      className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full absolute bottom-1 left-1.5 sm:bottom-2 sm:left-2 ${selected ? "bg-stone-300" : "bg-indigo-500"}`}
                     />
                   )}
                 </button>
@@ -161,8 +222,8 @@ export default function ReadOnlyCalendar() {
         </div>
 
         {/* Read-Only Sidebar */}
-        <aside className="bg-stone-50/50 border-l border-stone-100 p-8 lg:p-10 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
+        <aside ref={detailsRef} className="bg-stone-50/50 border-l border-stone-100 p-5 sm:p-8 lg:p-10 flex flex-col scroll-mt-6">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <CalendarIcon size={20} className="text-stone-400" />
             <h3 className="text-lg font-serif font-medium text-stone-800">
               Event Details
@@ -179,7 +240,7 @@ export default function ReadOnlyCalendar() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-stone-400">
                   Selected Date
                 </span>
-                <p className="text-stone-700 font-medium">{selectedDate}</p>
+                <p className="text-stone-700 font-medium text-lg">{getSelectedBsDateString(selectedDate)}</p>
               </div>
 
               <div
@@ -235,7 +296,7 @@ export default function ReadOnlyCalendar() {
               <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
                 <div>
                   <h4 className="font-serif text-xl text-stone-900">
-                    {selectedDate}
+                    {getSelectedBsDateString(selectedDate)}
                   </h4>
                   <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">
                     Scheduled Event
