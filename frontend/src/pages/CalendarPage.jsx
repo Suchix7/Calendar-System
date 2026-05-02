@@ -3,17 +3,17 @@ import Calendar from "../components/calender"; // Ensure capitalization matches 
 
 const CalendarPage = () => {
   return (
-    <div className="min-h-screen bg-[#FDFCFB] py-16 px-6 text-gray-800">
+    <div className="min-h-screen bg-[#FDFCFB] py-6 sm:py-12 px-4 sm:px-6 text-gray-800">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <div className="mb-12 text-center border-b border-gray-100 pb-10">
-          <span className="text-[11px] uppercase tracking-[0.3em] text-red-500 font-semibold mb-3 block">
+        <div className="mb-6 sm:mb-10 text-center border-b border-gray-100 pb-6 sm:pb-8">
+          <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-red-500 font-semibold mb-2 sm:mb-3 block">
             Community & Worship
           </span>
-          <h1 className="text-4xl font-serif font-medium text-gray-900 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-serif font-medium text-gray-900 tracking-tight">
             Church Calendar
           </h1>
-          <p className="text-gray-500 mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
+          <p className="text-sm sm:text-base text-gray-500 mt-2 sm:mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
             Join us in fellowship. Keep track of our weekly services, choir
             rehearsals, and community gatherings.
           </p>
