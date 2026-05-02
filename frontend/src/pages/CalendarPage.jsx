@@ -3,17 +3,17 @@ import Calendar from "../components/calender"; // Ensure capitalization matches 
 
 const CalendarPage = () => {
   return (
-    <div className="min-h-screen bg-[#FDFCFB] py-16 px-6 text-stone-800">
+    <div className="min-h-screen bg-[#FDFCFB] py-16 px-6 text-gray-800">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <div className="mb-12 text-center border-b border-stone-100 pb-10">
-          <span className="text-[11px] uppercase tracking-[0.3em] text-stone-400 font-semibold mb-3 block">
+        <div className="mb-12 text-center border-b border-gray-100 pb-10">
+          <span className="text-[11px] uppercase tracking-[0.3em] text-red-500 font-semibold mb-3 block">
             Community & Worship
           </span>
-          <h1 className="text-4xl font-serif font-medium text-stone-900 tracking-tight">
+          <h1 className="text-4xl font-serif font-medium text-gray-900 tracking-tight">
             Church Calendar
           </h1>
-          <p className="text-stone-500 mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
+          <p className="text-gray-500 mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
             Join us in fellowship. Keep track of our weekly services, choir
             rehearsals, and community gatherings.
           </p>
@@ -21,7 +21,7 @@ const CalendarPage = () => {
 
         {/* Calendar Component Wrapper */}
         <div className="flex justify-center">
-          <div className="w-full bg-white rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-stone-100 p-2">
+          <div className="w-full bg-white rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-gray-100 p-2">
             <Calendar />
           </div>
         </div>
