@@ -12,15 +12,23 @@ import ReadCalendarPage from "./pages/ReadOnlyCalendarPage";
 import ProtectedRoute from "../route/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import { Calendar as CalendarIcon, Shield, LogIn, LogOut } from "lucide-react";
+import InstallPrompt from "./components/InstallPrompt";
 
 // Responsive Navigation component
 function Navigation() {
   const navigate = useNavigate();
-  // We check localStorage here so it refreshes when the component re-renders
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  // Safely check localStorage for strict Safari privacy modes
+  let isLoggedIn = false;
+  try {
+    isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  } catch (e) {
+    console.warn("LocalStorage access blocked by Safari.");
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
+    try {
+      localStorage.removeItem("isLoggedIn");
+    } catch(e) {}
     navigate("/login");
   };
 
@@ -92,6 +100,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen pb-20 sm:pb-0">
+        <InstallPrompt />
         <Navigation />
 
         <Routes>
