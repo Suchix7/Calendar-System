@@ -5,6 +5,7 @@ import {
   Route,
   Link,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import ChurchLogin from "./pages/LoginPage";
 import CalendarPage from "./pages/CalendarPage";
@@ -17,6 +18,8 @@ import InstallPrompt from "./components/InstallPrompt";
 // Responsive Navigation component
 function Navigation() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
   // Safely check localStorage for strict Safari privacy modes
   let isLoggedIn = false;
   try {
@@ -68,16 +71,16 @@ function Navigation() {
       {/* Mobile Navigation (Bottom Tab Bar, hidden on desktop) */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-4px_25px_-5px_rgba(0,0,0,0.05)] z-50 pb-safe">
         <div className="flex justify-around items-center p-3">
-          <Link to="/" className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 active:text-red-600 transition-colors flex-1">
-            <CalendarIcon size={22} />
-            <span className="text-[10px] font-medium tracking-wide">Public</span>
+          <Link to="/" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
+            <CalendarIcon size={22} className={currentPath === '/' ? 'fill-red-100' : ''} />
+            <span className={`text-[10px] tracking-wide ${currentPath === '/' ? 'font-bold' : 'font-medium'}`}>Public</span>
           </Link>
 
           {isLoggedIn ? (
             <>
-              <Link to="/calendar" className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 active:text-red-600 transition-colors flex-1">
-                <Shield size={22} />
-                <span className="text-[10px] font-medium tracking-wide">Admin</span>
+              <Link to="/calendar" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/calendar' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
+                <Shield size={22} className={currentPath === '/calendar' ? 'fill-red-100' : ''} />
+                <span className={`text-[10px] tracking-wide ${currentPath === '/calendar' ? 'font-bold' : 'font-medium'}`}>Admin</span>
               </Link>
               <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 active:text-red-600 transition-colors flex-1">
                 <LogOut size={22} />
@@ -85,9 +88,9 @@ function Navigation() {
               </button>
             </>
           ) : (
-            <Link to="/login" className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 active:text-red-600 transition-colors flex-1">
-              <LogIn size={22} />
-              <span className="text-[10px] font-medium tracking-wide">Login</span>
+            <Link to="/login" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/login' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
+              <LogIn size={22} className={currentPath === '/login' ? 'fill-red-100' : ''} />
+              <span className={`text-[10px] tracking-wide ${currentPath === '/login' ? 'font-bold' : 'font-medium'}`}>Login</span>
             </Link>
           )}
         </div>
