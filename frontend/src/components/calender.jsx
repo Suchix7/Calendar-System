@@ -144,23 +144,23 @@ export default function AdminCalendar() {
 
   return (
     <div className="relative w-full max-w-6xl mx-auto">
-      <div className="w-full bg-white rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-stone-100 shadow-sm relative">
+      <div className="w-full bg-white rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-gray-100 shadow-sm relative">
         {isFetching && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-stone-400 animate-spin" />
+            <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
           </div>
         )}
 
         {/* Main Calendar Section */}
         <div className="lg:col-span-2 p-4 sm:p-6 lg:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl flex items-baseline gap-2 font-serif font-medium text-stone-900">
+            <h2 className="text-xl sm:text-2xl flex items-baseline gap-2 font-serif font-medium text-gray-900">
               {monthName}{" "}
-              <span className="text-stone-400 font-sans font-light">
+              <span className="text-gray-500 font-sans font-light">
                 {yearNp}
               </span>
               {overlappingAdMonths && (
-                <span className="text-stone-400 font-sans font-medium text-sm">
+                <span className="text-gray-400 font-sans font-medium text-sm">
                   ({overlappingAdMonths})
                 </span>
               )}
@@ -169,13 +169,13 @@ export default function AdminCalendar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrev}
-                className="p-2 rounded-xl border border-stone-100 hover:bg-stone-50 text-stone-600 transition-colors"
+                className="p-2 rounded-xl border border-gray-200 hover:bg-red-50 hover:border-red-100 hover:text-red-600 text-gray-600 transition-colors"
               >
                 <ChevronLeft size={18} />
               </button>
               <button
                 onClick={handleNext}
-                className="p-2 rounded-xl border border-stone-100 hover:bg-stone-50 text-stone-600 transition-colors"
+                className="p-2 rounded-xl border border-gray-200 hover:bg-red-50 hover:border-red-100 hover:text-red-600 text-gray-600 transition-colors"
               >
                 <ChevronRight size={18} />
               </button>
@@ -183,10 +183,10 @@ export default function AdminCalendar() {
           </div>
 
           <div className="grid grid-cols-7 mb-2 sm:mb-4">
-            {days.map((d) => (
+            {days.map((d, index) => (
               <div
                 key={d}
-                className="text-center text-[9px] sm:text-[10px] uppercase tracking-wider sm:tracking-[0.2em] font-bold text-stone-400 leading-none truncate px-0.5"
+                className={`text-center text-[9px] sm:text-[10px] uppercase tracking-wider sm:tracking-[0.2em] font-bold leading-none truncate px-0.5 ${index === 6 ? 'text-red-600' : 'text-gray-400'}`}
               >
                 {d}
               </div>
@@ -212,21 +212,21 @@ export default function AdminCalendar() {
                   onClick={() => setSelectedDate(fullDate)}
                   className={`relative p-1 sm:p-3 rounded-xl sm:rounded-2xl text-sm transition-all flex flex-col items-center justify-center min-h-[56px] sm:min-h-[80px] border ${
                     selected
-                      ? "bg-stone-800 text-white border-stone-800 shadow-md"
+                      ? "bg-red-600 text-white border-red-600 shadow-md shadow-red-200/50"
                       : isToday
-                      ? "bg-red-50/80 text-red-900 border-red-100 hover:bg-red-100/80"
-                      : "bg-white text-stone-700 border-transparent hover:bg-stone-50"
+                      ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/80"
+                      : "bg-white text-gray-800 border-transparent hover:bg-gray-50"
                   }`}
                 >
-                  <span className={`text-base sm:text-xl ${selected ? "font-bold" : isToday ? "font-bold" : "font-semibold"}`}>
+                  <span className={`text-base sm:text-xl ${selected ? "font-bold" : isToday ? "font-bold" : "font-semibold"} ${!selected && npDate.getDay() === 6 ? "text-red-500" : ""}`}>
                     {npDate.format("D", "np")}
                   </span>
-                  <span className={`absolute bottom-1 right-1 sm:bottom-2 sm:right-2 text-[8px] sm:text-xs font-sans ${selected ? "text-stone-300" : isToday ? "text-red-400" : "text-stone-400"}`}>
+                  <span className={`absolute bottom-1 right-1 sm:bottom-2 sm:right-2 text-[8px] sm:text-xs font-sans ${selected ? "text-red-100" : isToday ? "text-red-400" : npDate.getDay() === 6 ? "text-red-300" : "text-gray-400"}`}>
                     {adDateObj.date}
                   </span>
                   {hasNote && (
                     <div
-                      className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full absolute bottom-1 left-1.5 sm:bottom-2 sm:left-2 ${selected ? "bg-stone-300" : "bg-indigo-500"}`}
+                      className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full absolute bottom-1 left-1.5 sm:bottom-2 sm:left-2 ${selected ? "bg-white" : "bg-green-500"}`}
                     />
                   )}
                 </button>
@@ -236,10 +236,10 @@ export default function AdminCalendar() {
         </div>
 
         {/* Admin Sidebar */}
-        <aside className="bg-stone-50/50 border-l border-stone-100 p-5 sm:p-8 lg:p-10 flex flex-col">
+        <aside className="bg-gray-50/50 border-l border-gray-100 p-5 sm:p-8 lg:p-10 flex flex-col">
           <div className="flex items-center gap-2 mb-4 sm:mb-6">
-            <CalendarIcon size={20} className="text-stone-400" />
-            <h3 className="text-lg font-serif font-medium text-stone-800">
+            <CalendarIcon size={20} className="text-red-500" />
+            <h3 className="text-lg font-serif font-medium text-gray-800">
               Admin Controls
             </h3>
           </div>
@@ -251,27 +251,27 @@ export default function AdminCalendar() {
               className="flex-1 flex flex-col space-y-4"
             >
               <div>
-                <span className="text-[10px] uppercase tracking-widest font-bold text-stone-400">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500">
                   Selected Date
                 </span>
-                <p className="text-stone-700 font-medium text-lg">{getSelectedBsDateString(selectedDate)}</p>
+                <p className="text-gray-800 font-medium text-lg">{getSelectedBsDateString(selectedDate)}</p>
               </div>
 
               <div className="flex-1 flex flex-col relative group">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-stone-400">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500">
                     Edit Event
                   </span>
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="p-1 hover:bg-stone-200 rounded text-stone-400 hover:text-stone-600 transition-colors"
+                    className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-600 transition-colors"
                     title="Open Fullscreen"
                   >
                     <Maximize2 size={14} />
                   </button>
                 </div>
                 <textarea
-                  className="w-full flex-1 p-4 rounded-2xl border border-stone-200 bg-white focus:ring-2 focus:ring-stone-100 outline-none resize-none text-stone-700 placeholder:text-stone-300 placeholder:italic"
+                  className="w-full flex-1 p-4 rounded-2xl border border-gray-200 bg-white focus:ring-2 focus:ring-red-100 focus:border-red-300 outline-none resize-none text-gray-800 placeholder:text-gray-300 placeholder:italic"
                   placeholder="Type service details..."
                   value={notes[selectedDate] || ""}
                   onChange={(e) =>
@@ -284,13 +284,13 @@ export default function AdminCalendar() {
                 <button
                   onClick={handleSave}
                   disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-3 bg-stone-800 text-white rounded-xl text-sm font-semibold hover:bg-stone-900 transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all disabled:opacity-50 shadow-md shadow-red-200"
                 >
                   <Save size={16} /> {isLoading ? "Saving..." : "Save Changes"}
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition-all"
+                  className="flex items-center justify-center gap-2 py-3 bg-gray-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 hover:text-red-700 transition-all"
                 >
                   <Trash2 size={16} /> Delete Event
                 </button>
@@ -298,7 +298,7 @@ export default function AdminCalendar() {
             </motion.div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <p className="text-stone-400 text-sm italic">
+              <p className="text-gray-400 text-sm italic">
                 Select a date to create or modify events.
               </p>
             </div>
@@ -323,18 +323,18 @@ export default function AdminCalendar() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="relative w-full max-w-4xl h-full max-h-[800px] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             >
-              <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div>
-                  <h4 className="font-serif text-xl text-stone-900">
+                  <h4 className="font-serif text-xl text-gray-900">
                     Editing: {getSelectedBsDateString(selectedDate)}
                   </h4>
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-red-500">
                     Full Screen Mode
                   </p>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="p-2 hover:bg-stone-200 rounded-full text-stone-500"
+                  className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-900"
                 >
                   <X size={24} />
                 </button>
@@ -342,7 +342,7 @@ export default function AdminCalendar() {
 
               <div className="flex-1 p-8">
                 <textarea
-                  className="w-full h-full p-6 text-lg border-none focus:ring-0 outline-none resize-none text-stone-800 placeholder:italic"
+                  className="w-full h-full p-6 text-lg border-none focus:ring-0 outline-none resize-none text-gray-800 placeholder:italic placeholder-gray-300"
                   placeholder="Start typing the event details here..."
                   autoFocus
                   value={notes[selectedDate] || ""}
@@ -352,7 +352,7 @@ export default function AdminCalendar() {
                 />
               </div>
 
-              <div className="p-6 border-t border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <div className="p-6 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <button
                   onClick={handleDelete}
                   className="px-6 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl transition-colors"
@@ -362,14 +362,14 @@ export default function AdminCalendar() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2.5 text-stone-600 font-medium hover:bg-stone-200 rounded-xl transition-colors"
+                    className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-200 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-8 py-2.5 bg-stone-800 text-white rounded-xl font-semibold hover:bg-stone-900 transition-all shadow-md"
+                    className="flex items-center gap-2 px-8 py-2.5 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-200"
                   >
                     <Save size={18} />{" "}
                     {isLoading ? "Saving..." : "Save Changes"}
