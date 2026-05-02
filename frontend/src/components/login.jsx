@@ -38,39 +38,39 @@ const ChurchLogin = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-stone-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12">
-      <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-stone-800">
+    <div className="min-h-screen w-full bg-white dark:bg-black flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12 transition-colors relative overflow-hidden">
+      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center relative z-10">
         <div className="w-full">
-          <div className="flex flex-col items-center mb-10 text-center">
-            <div className="w-14 h-14 bg-stone-100 rounded-full flex items-center justify-center border border-stone-200 shadow-sm mb-5">
-              <Church className="text-stone-600 w-7 h-7" strokeWidth={1.5} />
+          <div className="flex flex-col items-center mb-8 sm:mb-10 text-center">
+            <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800/50 rounded-full flex items-center justify-center border border-gray-100 dark:border-gray-800 shadow-sm mb-4 transition-colors">
+              <Church className="text-gray-800 dark:text-gray-200 w-8 h-8" strokeWidth={1.5} />
             </div>
-            <h1 className="text-2xl font-serif font-medium tracking-tight text-stone-900">
+            <h1 className="text-3xl font-serif font-bold tracking-tight text-gray-900 dark:text-gray-100">
               Prakash Church
             </h1>
-            <p className="text-stone-500 text-sm mt-2 font-light italic">
-              "Walk in the light"
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 font-medium tracking-wider uppercase">
+              Admin Portal
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-stone-100 p-8 sm:p-10">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-none border border-gray-100 dark:border-gray-800 p-8 sm:p-10 transition-colors">
             {/* Error Message Alert */}
             {error && (
-              <div className="mb-6 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl text-center">
+              <div className="mb-6 p-3 bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-300 text-sm rounded-xl text-center font-medium">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[12px] uppercase tracking-widest font-semibold text-stone-500 ml-1">
+                <label className="text-[11px] uppercase tracking-[0.15em] font-bold text-gray-500 dark:text-gray-400 ml-1">
                   Email Address
                 </label>
                 <div className="relative group">
-                  <Mail className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-stone-800 transition-colors" />
+                  <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-red-600 dark:group-focus-within:text-red-400 transition-colors" />
                   <input
                     type="email"
-                    className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-200 rounded-xl outline-none focus:bg-white focus:border-stone-400 transition-all text-stone-800 placeholder:text-stone-300"
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent focus:border-red-500/20 dark:focus:border-red-500/30 rounded-2xl outline-none focus:bg-white dark:focus:bg-gray-800 transition-all text-gray-900 dark:text-white placeholder:text-gray-400"
                     placeholder="name@email.com"
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
@@ -82,14 +82,14 @@ const ChurchLogin = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] uppercase tracking-widest font-semibold text-stone-500 ml-1">
+                <label className="text-[11px] uppercase tracking-[0.15em] font-bold text-gray-500 dark:text-gray-400 ml-1">
                   Password
                 </label>
                 <div className="relative group">
-                  <Lock className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-stone-800 transition-colors" />
+                  <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-red-600 dark:group-focus-within:text-red-400 transition-colors" />
                   <input
                     type={showPassword ? "text" : "password"}
-                    className="w-full pl-11 pr-12 py-3 bg-stone-50/50 border border-stone-200 rounded-xl outline-none focus:bg-white focus:border-stone-400 transition-all text-stone-800 placeholder:text-stone-300"
+                    className="w-full pl-12 pr-12 py-3.5 bg-gray-50 dark:bg-gray-800/50 border-2 border-transparent focus:border-red-500/20 dark:focus:border-red-500/30 rounded-2xl outline-none focus:bg-white dark:focus:bg-gray-800 transition-all text-gray-900 dark:text-white placeholder:text-gray-400"
                     placeholder="••••••••"
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
@@ -100,9 +100,9 @@ const ChurchLogin = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -110,23 +110,23 @@ const ChurchLogin = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-stone-800 hover:bg-stone-900 text-stone-50 font-medium py-3.5 rounded-xl shadow-sm transition-all active:scale-[0.98] mt-4 tracking-wide flex items-center justify-center gap-2"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-red-600/30 transition-all active:scale-[0.98] mt-6 tracking-wide flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Verifying...
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Accessing...
                   </>
                 ) : (
-                  "Sign In"
+                  "Secure Login"
                 )}
               </button>
             </form>
           </div>
 
-          <div className="mt-10 text-center">
-            <p className="text-stone-400 text-[11px] uppercase tracking-[0.2em] font-medium">
-              Est. 2026 • Prakash Church
+          <div className="mt-8 text-center relative z-10">
+            <p className="text-gray-400 dark:text-gray-600 text-[10px] uppercase tracking-[0.3em] font-bold transition-colors">
+              Prakash Community System © 2026
             </p>
           </div>
         </div>

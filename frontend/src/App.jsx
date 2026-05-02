@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,7 +12,7 @@ import CalendarPage from "./pages/CalendarPage";
 import ReadCalendarPage from "./pages/ReadOnlyCalendarPage";
 import ProtectedRoute from "../route/ProtectedRoute";
 import NotFound from "./pages/NotFound";
-import { Calendar as CalendarIcon, Shield, LogIn, LogOut } from "lucide-react";
+import { Calendar as CalendarIcon, Shield, LogIn, LogOut, Sun, Moon } from "lucide-react";
 import InstallPrompt from "./components/InstallPrompt";
 
 // Responsive Navigation component
@@ -20,6 +20,24 @@ function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  // Dark Mode State
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("theme") === "dark" || 
+          (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  );
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
   // Safely check localStorage for strict Safari privacy modes
   let isLoggedIn = false;
   try {
@@ -38,13 +56,20 @@ function Navigation() {
   return (
     <>
       {/* Desktop Navigation (Top-bar, hidden on mobile) */}
-      <nav className="hidden sm:flex bg-white border-b px-8 py-4 justify-between items-center text-sm font-medium text-gray-800 shadow-sm sticky top-0 z-50">
+      <nav className="hidden sm:flex bg-white dark:bg-gray-900 border-b dark:border-gray-800 px-8 py-4 justify-between items-center text-sm font-medium text-gray-800 shadow-sm sticky top-0 z-50 transition-colors">
         <div className="flex items-center gap-2">
           <CalendarIcon className="text-red-600" size={20} />
-          <span className="font-serif font-bold text-lg tracking-tight">Church Calendar</span>
+          <span className="font-serif font-bold text-lg dark:text-gray-100 tracking-tight">Church Calendar</span>
         </div>
         <div className="flex gap-6 items-center">
-          <Link to="/" className="text-gray-600 hover:text-red-600 transition-colors flex items-center gap-2">
+          <button 
+            onClick={toggleTheme} 
+            className="p-2 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          
+          <Link to="/" className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500 transition-colors flex items-center gap-2">
             Public View
           </Link>
           
@@ -69,30 +94,35 @@ function Navigation() {
       </nav>
 
       {/* Mobile Navigation (Bottom Tab Bar, hidden on desktop) */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-4px_25px_-5px_rgba(0,0,0,0.05)] z-50 pb-safe">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-[0_-4px_25px_-5px_rgba(0,0,0,0.05)] dark:shadow-none z-50 pb-safe transition-colors">
         <div className="flex justify-around items-center p-3">
-          <Link to="/" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
-            <CalendarIcon size={22} className={currentPath === '/' ? 'fill-red-100' : ''} />
+          <Link to="/" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/' ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600'}`}>
+            <CalendarIcon size={22} className={currentPath === '/' ? 'fill-red-100 dark:fill-red-900/50' : ''} />
             <span className={`text-[10px] tracking-wide ${currentPath === '/' ? 'font-bold' : 'font-medium'}`}>Public</span>
           </Link>
 
           {isLoggedIn ? (
             <>
-              <Link to="/calendar" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/calendar' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
-                <Shield size={22} className={currentPath === '/calendar' ? 'fill-red-100' : ''} />
+              <Link to="/calendar" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/calendar' ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600'}`}>
+                <Shield size={22} className={currentPath === '/calendar' ? 'fill-red-100 dark:fill-red-900/50' : ''} />
                 <span className={`text-[10px] tracking-wide ${currentPath === '/calendar' ? 'font-bold' : 'font-medium'}`}>Admin</span>
               </Link>
-              <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 active:text-red-600 transition-colors flex-1">
+              <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600 transition-colors flex-1">
                 <LogOut size={22} />
                 <span className="text-[10px] font-medium tracking-wide">Logout</span>
               </button>
             </>
           ) : (
-            <Link to="/login" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/login' ? 'text-red-600' : 'text-gray-500 hover:text-red-600 active:text-red-600'}`}>
-              <LogIn size={22} className={currentPath === '/login' ? 'fill-red-100' : ''} />
+            <Link to="/login" className={`flex flex-col items-center gap-1 transition-colors flex-1 ${currentPath === '/login' ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600'}`}>
+              <LogIn size={22} className={currentPath === '/login' ? 'fill-red-100 dark:fill-red-900/50' : ''} />
               <span className={`text-[10px] tracking-wide ${currentPath === '/login' ? 'font-bold' : 'font-medium'}`}>Login</span>
             </Link>
           )}
+
+          <button onClick={toggleTheme} className="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600 transition-colors flex-1">
+            {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
+            <span className="text-[10px] font-medium tracking-wide">Theme</span>
+          </button>
         </div>
       </nav>
     </>
