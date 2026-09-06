@@ -1,5 +1,6 @@
 import React from "react";
 import ReadOnlyCalendar from "../components/calenderview"; // Ensure capitalization matches your filename
+import PrayerRequests from "../components/PrayerRequests";
 
 const ReadCalendarPage = () => {
   return (
@@ -18,6 +19,9 @@ const ReadCalendarPage = () => {
             rehearsals, and community gatherings.
           </p>
         </div>
+
+        {/* Prayer Requests Notepad Section at the Top */}
+        <PrayerRequests isAdmin={false} />
 
         {/* Calendar Component Wrapper */}
         <div className="flex justify-center">

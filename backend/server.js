@@ -44,16 +44,48 @@ mongoose
 const eventSchema = new mongoose.Schema(
   {
     date: { type: String, required: true, unique: true },
-    note: { type: String, required: true },
+    note: { type: mongoose.Schema.Types.Mixed, required: true },
   },
   { timestamps: true },
 );
 const Event = mongoose.model("Event", eventSchema);
 
+const settingSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true },
+    value: { type: mongoose.Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true },
+);
+const Setting = mongoose.model("Setting", settingSchema);
+
 // --- AUTH ROUTES ---
 // This connects the login function you wrote to the /api/auth/login URL
 app.post("/api/auth/login", loginUser);
 app.post("/api/auth/register", registerUser);
+
+// --- SETTINGS ROUTES ---
+app.get("/api/settings/:key", async (req, res) => {
+  try {
+    const setting = await Setting.findOne({ key: req.params.key });
+    res.status(200).json(setting ? setting.value : null);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch setting" });
+  }
+});
+
+app.post("/api/settings/:key", verifyToken, async (req, res) => {
+  try {
+    const updated = await Setting.findOneAndUpdate(
+      { key: req.params.key },
+      { value: req.body.value },
+      { upsert: true, new: true },
+    );
+    res.status(200).json(updated.value);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save setting" });
+  }
+});
 // --- CALENDAR ROUTES ---
 
 // 1. PUBLIC: Get all calendar events
@@ -73,7 +105,7 @@ app.get("/api/events", async (req, res) => {
 // 2. ADMIN: Save or update an event
 app.post("/api/events", verifyToken, async (req, res) => {
   const { date, note } = req.body;
-  if (!date || !note)
+  if (!date || note === undefined || note === null)
     return res.status(400).json({ error: "Date and note are required" });
 
   try {

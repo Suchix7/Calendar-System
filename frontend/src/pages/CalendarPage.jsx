@@ -1,5 +1,6 @@
 import React from "react";
-import Calendar from "../components/calender"; // Ensure capitalization matches your filename
+import Calendar from "../components/calender";
+import PrayerRequests from "../components/PrayerRequests";
 
 const CalendarPage = () => {
   return (
@@ -11,17 +12,19 @@ const CalendarPage = () => {
             Community & Worship
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-medium text-gray-900 dark:text-gray-100 tracking-tight">
-            Church Calendar
+            Church Calendar & Admin
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 sm:mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
-            Join us in fellowship. Keep track of our weekly services, choir
-            rehearsals, and community gatherings.
+            Manage church services, community events, and prayer requests.
           </p>
         </div>
 
+        {/* Prayer Requests Notepad Section at the Top */}
+        <PrayerRequests isAdmin={true} />
+
         {/* Calendar Component Wrapper */}
         <div className="flex justify-center">
-          <div className="w-full rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-gray-100 p-2">
+          <div className="w-full rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-gray-800 p-2">
             <Calendar />
           </div>
         </div>
