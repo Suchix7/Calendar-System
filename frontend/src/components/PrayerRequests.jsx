@@ -144,7 +144,12 @@ export default function PrayerRequests({ isAdmin = false }) {
 
   return (
     <>
-      <div className="w-full mb-6 sm:mb-8 rounded-3xl bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 dark:from-gray-900 dark:via-gray-900/90 dark:to-gray-900 border border-amber-200/70 dark:border-amber-900/30 shadow-[0_4px_20px_-4px_rgba(251,191,36,0.08)] dark:shadow-none p-4 sm:p-6 transition-all">
+      <div
+        onClick={() => !isEditing && setIsPopupOpen(true)}
+        className={`w-full mb-6 sm:mb-8 rounded-3xl bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 dark:from-gray-900 dark:via-gray-900/90 dark:to-gray-900 border border-amber-200/70 dark:border-amber-900/30 shadow-[0_4px_20px_-4px_rgba(251,191,36,0.08)] dark:shadow-none p-4 sm:p-6 transition-all ${
+          !isEditing ? "cursor-pointer hover:border-amber-300 dark:hover:border-amber-700/60 hover:shadow-md" : ""
+        }`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-amber-200/50 dark:border-gray-800">
           <div className="flex items-center gap-2.5">
@@ -164,10 +169,13 @@ export default function PrayerRequests({ isAdmin = false }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
             {content.trim() && (
               <button
-                onClick={() => setIsPopupOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPopupOpen(true);
+                }}
                 className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
                 title="Open in Popup Modal"
               >
@@ -178,7 +186,10 @@ export default function PrayerRequests({ isAdmin = false }) {
 
             {isAdmin && !isEditing && (
               <button
-                onClick={handleStartEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStartEdit();
+                }}
                 className="px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
               >
                 <Edit3 size={13} /> {content.trim() ? "Edit" : "+ Add Requests"}
@@ -196,7 +207,7 @@ export default function PrayerRequests({ isAdmin = false }) {
             </div>
           ) : isAdmin && isEditing ? (
             /* Admin Notepad Editor */
-            <div className="space-y-3">
+            <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
               <textarea
                 rows={5}
                 value={draftContent}
@@ -222,57 +233,17 @@ export default function PrayerRequests({ isAdmin = false }) {
               </div>
             </div>
           ) : content.trim() ? (
-            /* Display View with Expand Trigger */
-            <div className="relative group">
-              <div
-                onClick={() => setIsPopupOpen(true)}
-                className={`bg-white/80 dark:bg-gray-800/60 rounded-2xl p-4 sm:p-5 border border-amber-100 dark:border-gray-800/80 shadow-sm cursor-pointer hover:border-amber-300 dark:hover:border-gray-700 transition-all ${
-                  isLongContent ? "max-h-[140px] overflow-hidden" : ""
-                }`}
-              >
-                <FormattedPrayerText
-                  text={content}
-                  className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans"
-                />
-
-                {isLongContent && (
-                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white via-white/90 dark:from-gray-900 dark:via-gray-900/90 to-transparent flex items-end justify-center pb-2 rounded-b-2xl">
-                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 bg-amber-50 dark:bg-gray-800 px-3 py-1 rounded-full shadow-sm border border-amber-200 dark:border-gray-700 group-hover:scale-105 transition-transform">
-                      <Maximize2 size={12} /> Click to expand full prayer list
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between mt-2 px-1 text-[11px] text-gray-400">
-                <span className="flex items-center gap-1">
-                  <BookOpen size={11} className="text-amber-500" /> Click box anytime for popup view
-                </span>
-                {isLongContent && (
-                  <button
-                    onClick={() => setIsPopupOpen(true)}
-                    className="text-red-600 dark:text-red-400 font-semibold hover:underline flex items-center gap-1"
-                  >
-                    <Maximize2 size={11} /> Read all requests
-                  </button>
-                )}
-              </div>
+            /* Display View - Clean card that expands on click */
+            <div className="bg-white/80 dark:bg-gray-800/60 rounded-2xl p-4 sm:p-5 border border-amber-100 dark:border-gray-800/80 shadow-sm transition-all">
+              <FormattedPrayerText
+                text={content}
+                className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans line-clamp-4"
+              />
             </div>
           ) : (
-            /* Empty State */
-            <div
-              onClick={isAdmin ? handleStartEdit : undefined}
-              className={`py-4 px-3 text-center text-gray-400 dark:text-gray-500 italic text-xs rounded-2xl ${
-                isAdmin ? "cursor-pointer hover:bg-amber-50/50 dark:hover:bg-gray-800/40 transition-colors border border-dashed border-amber-200/60 dark:border-gray-800" : ""
-              }`}
-            >
-              {isAdmin ? (
-                <span className="not-italic text-amber-700 dark:text-amber-400 font-medium">
-                  No prayer requests added yet. Click here or "+ Add Requests" above to write prayer notes.
-                </span>
-              ) : (
-                `"Do not be anxious about anything, but in everything by prayer and supplication with thanksgiving let your requests be made known to God." — Philippians 4:6`
-              )}
+            /* Clean Empty State */
+            <div className="py-3 px-2 text-center text-gray-400 dark:text-gray-500 italic text-xs">
+              "Do not be anxious about anything, but in everything by prayer and supplication with thanksgiving let your requests be made known to God." — Philippians 4:6
             </div>
           )}
         </div>
