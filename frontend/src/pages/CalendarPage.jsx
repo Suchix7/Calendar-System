@@ -1,6 +1,7 @@
 import React from "react";
 import Calendar from "../components/calender";
 import PrayerRequests from "../components/PrayerRequests";
+import Notice from "../components/Notice";
 
 const CalendarPage = () => {
   return (
@@ -15,11 +16,14 @@ const CalendarPage = () => {
             Church Calendar & Admin
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 sm:mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
-            Manage church services, community events, and prayer requests.
+            Manage church services, community events, notices, and prayer requests.
           </p>
         </div>
 
-        {/* Prayer Requests Notepad Section at the Top */}
+        {/* Notice Section on top */}
+        <Notice isAdmin={true} />
+
+        {/* Prayer Requests Notepad Section */}
         <PrayerRequests isAdmin={true} />
 
         {/* Calendar Component Wrapper */}

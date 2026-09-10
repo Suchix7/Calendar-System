@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  HeartHandshake,
+  Megaphone,
   Save,
   Loader2,
   Edit3,
   ExternalLink,
   Maximize2,
   X,
-  BookOpen,
+  BellRing,
 } from "lucide-react";
 import api from "../api/axios";
 
-// Formatter to render clickable links in prayer requests
-function FormattedPrayerText({ text, className = "" }) {
+// Formatter to render clickable links in notices
+function FormattedNoticeText({ text, className = "" }) {
   if (!text) return null;
 
   const parseContent = (content) => {
@@ -36,11 +36,11 @@ function FormattedPrayerText({ text, className = "" }) {
         if (url.startsWith("www.")) url = "https://" + url;
         elements.push(
           <a
-            key={`pr-link-${matchStart}`}
+            key={`notice-link-${matchStart}`}
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-red-600 dark:text-red-400 font-semibold underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 break-all inline-flex items-center gap-0.5 mx-0.5"
+            className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300 break-all inline-flex items-center gap-0.5 mx-0.5"
             onClick={(e) => e.stopPropagation()}
           >
             {label}
@@ -57,11 +57,11 @@ function FormattedPrayerText({ text, className = "" }) {
         const href = url.startsWith("www.") ? `https://${url}` : url;
         elements.push(
           <a
-            key={`pr-raw-${matchStart}`}
+            key={`notice-raw-${matchStart}`}
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-red-600 dark:text-red-400 font-semibold underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 break-all inline-flex items-center gap-0.5 mx-0.5"
+            className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300 break-all inline-flex items-center gap-0.5 mx-0.5"
             onClick={(e) => e.stopPropagation()}
           >
             {displayUrl}
@@ -83,7 +83,7 @@ function FormattedPrayerText({ text, className = "" }) {
   return <div className={`whitespace-pre-wrap ${className}`}>{parseContent(text)}</div>;
 }
 
-export default function PrayerRequests({ isAdmin = false }) {
+export default function Notice({ isAdmin = false }) {
   const [content, setContent] = useState("");
   const [draftContent, setDraftContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -92,10 +92,10 @@ export default function PrayerRequests({ isAdmin = false }) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const fetchPrayerRequests = async () => {
+    const fetchNotice = async () => {
       try {
         setIsLoading(true);
-        const res = await api.get("/api/settings/prayer_requests");
+        const res = await api.get("/api/settings/church_notice");
         let initialText = "";
         if (typeof res.data === "string") {
           initialText = res.data;
@@ -107,12 +107,12 @@ export default function PrayerRequests({ isAdmin = false }) {
         setContent(initialText);
         setDraftContent(initialText);
       } catch (err) {
-        console.error("Failed to load prayer requests:", err);
+        console.error("Failed to load church notice:", err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchPrayerRequests();
+    fetchNotice();
   }, []);
 
   const handleStartEdit = () => {
@@ -128,43 +128,41 @@ export default function PrayerRequests({ isAdmin = false }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await api.post("/api/settings/prayer_requests", { value: draftContent });
+      await api.post("/api/settings/church_notice", { value: draftContent });
       setContent(draftContent);
       setIsEditing(false);
-      alert("Prayer Requests saved successfully!");
+      alert("Notice saved successfully!");
     } catch (err) {
-      console.error("Failed to save prayer requests:", err);
-      alert("Failed to save prayer requests. Please ensure you are logged in.");
+      console.error("Failed to save notice:", err);
+      alert("Failed to save notice. Please ensure you are logged in.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const isLongContent = content.length > 220 || content.split("\n").length > 3;
-
   return (
     <>
       <div
         onClick={() => !isEditing && content.trim() && setIsPopupOpen(true)}
-        className={`w-full mb-6 sm:mb-8 rounded-3xl bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 dark:from-gray-900 dark:via-gray-900/90 dark:to-gray-900 border border-amber-200/70 dark:border-amber-900/30 shadow-[0_4px_20px_-4px_rgba(251,191,36,0.08)] dark:shadow-none p-4 sm:p-6 transition-all ${
-          !isEditing && content.trim() ? "cursor-pointer hover:border-amber-300 dark:hover:border-amber-700/60 hover:shadow-md" : ""
+        className={`w-full mb-6 sm:mb-8 rounded-3xl bg-gradient-to-br from-blue-50/60 via-white to-sky-50/40 dark:from-gray-900 dark:via-gray-900/90 dark:to-gray-900 border border-blue-200/70 dark:border-blue-900/30 shadow-[0_4px_20px_-4px_rgba(59,130,246,0.08)] dark:shadow-none p-4 sm:p-6 transition-all ${
+          !isEditing && content.trim() ? "cursor-pointer hover:border-blue-300 dark:hover:border-blue-700/60 hover:shadow-md" : ""
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-amber-200/50 dark:border-gray-800">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-blue-200/50 dark:border-gray-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shadow-sm">
-              <HeartHandshake size={20} />
+            <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-sm">
+              <Megaphone size={20} />
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-serif font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                Prayer Requests
+                Notice
                 <span className="text-[11px] font-sans font-normal text-gray-400 dark:text-gray-500">
-                  (प्रार्थनाका विषयहरू)
+                  (सूचना / जानकारी)
                 </span>
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                Lift up one another in prayer and supplication
+                Important announcements, updates, and church news
               </p>
             </div>
           </div>
@@ -176,7 +174,7 @@ export default function PrayerRequests({ isAdmin = false }) {
                   e.stopPropagation();
                   setIsPopupOpen(true);
                 }}
-                className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
+                className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
                 title="Open in Popup Modal"
               >
                 <Maximize2 size={13} />
@@ -190,9 +188,9 @@ export default function PrayerRequests({ isAdmin = false }) {
                   e.stopPropagation();
                   handleStartEdit();
                 }}
-                className="px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-red-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
+                className="px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
               >
-                <Edit3 size={13} /> {content.trim() ? "Edit" : "+ Add Requests"}
+                <Edit3 size={13} /> {content.trim() ? "Edit" : "+ Add Notice"}
               </button>
             )}
           </div>
@@ -202,8 +200,8 @@ export default function PrayerRequests({ isAdmin = false }) {
         <div className="pt-3.5">
           {isLoading ? (
             <div className="py-6 flex items-center justify-center text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2 text-red-500" />
-              <span className="text-xs">Loading prayer requests...</span>
+              <Loader2 className="w-5 h-5 animate-spin mr-2 text-blue-500" />
+              <span className="text-xs">Loading notice...</span>
             </div>
           ) : isAdmin && isEditing ? (
             /* Admin Notepad Editor */
@@ -212,8 +210,8 @@ export default function PrayerRequests({ isAdmin = false }) {
                 rows={5}
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
-                placeholder="Write church prayer requests, community needs, hospital visits, mission prayer points, links..."
-                className="w-full p-4 rounded-2xl border border-amber-200/80 dark:border-gray-700 bg-white dark:bg-gray-800/80 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/50 focus:border-red-400 outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-100 placeholder:italic placeholder-gray-400 leading-relaxed resize-y transition-all shadow-inner"
+                placeholder="Write church notices, weekly announcements, special schedules, links..."
+                className="w-full p-4 rounded-2xl border border-blue-200/80 dark:border-gray-700 bg-white dark:bg-gray-800/80 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/50 focus:border-blue-400 outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-100 placeholder:italic placeholder-gray-400 leading-relaxed resize-y transition-all shadow-inner"
                 autoFocus
               />
               <div className="flex items-center justify-end gap-2.5">
@@ -226,16 +224,16 @@ export default function PrayerRequests({ isAdmin = false }) {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-1.5 px-5 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-200 dark:shadow-none disabled:opacity-50 active:scale-98"
+                  className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none disabled:opacity-50 active:scale-98"
                 >
-                  <Save size={14} /> {isSaving ? "Saving..." : "Save Prayer Requests"}
+                  <Save size={14} /> {isSaving ? "Saving..." : "Save Notice"}
                 </button>
               </div>
             </div>
           ) : content.trim() ? (
             /* Display View - Clean card that expands on click */
-            <div className="bg-white/80 dark:bg-gray-800/60 rounded-2xl p-4 sm:p-5 border border-amber-100 dark:border-gray-800/80 shadow-sm transition-all">
-              <FormattedPrayerText
+            <div className="bg-white/80 dark:bg-gray-800/60 rounded-2xl p-4 sm:p-5 border border-blue-100 dark:border-gray-800/80 shadow-sm transition-all">
+              <FormattedNoticeText
                 text={content}
                 className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans line-clamp-4"
               />
@@ -249,7 +247,7 @@ export default function PrayerRequests({ isAdmin = false }) {
         </div>
       </div>
 
-      {/* Fullscreen Popup Modal for Prayer Requests */}
+      {/* Fullscreen Popup Modal for Notice */}
       <AnimatePresence>
         {isPopupOpen && (
           <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8">
@@ -270,17 +268,17 @@ export default function PrayerRequests({ isAdmin = false }) {
               className="relative w-full max-w-2xl h-[88vh] sm:h-[80vh] max-h-[750px] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10"
             >
               {/* Modal Header */}
-              <div className="p-4 sm:p-6 border-b border-amber-100 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-amber-50/80 to-orange-50/50 dark:from-gray-800/80 dark:to-gray-800/40 flex-shrink-0">
+              <div className="p-4 sm:p-6 border-b border-blue-100 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-blue-50/80 to-sky-50/50 dark:from-gray-800/80 dark:to-gray-800/40 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shadow-sm">
-                    <HeartHandshake size={22} />
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-sm">
+                    <Megaphone size={22} />
                   </div>
                   <div>
                     <h3 className="text-base sm:text-xl font-serif font-semibold text-gray-900 dark:text-gray-100">
-                      Prayer Requests
+                      Church Notice
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      प्रार्थनाका विषयहरू — Lift up one another in prayer
+                      सूचना तथा जानकारी — Announcements & Updates
                     </p>
                   </div>
                 </div>
@@ -292,7 +290,7 @@ export default function PrayerRequests({ isAdmin = false }) {
                         setIsPopupOpen(false);
                         handleStartEdit();
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-red-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-colors shadow-sm"
+                      className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition-colors shadow-sm"
                     >
                       <Edit3 size={13} /> Edit
                     </button>
@@ -308,8 +306,8 @@ export default function PrayerRequests({ isAdmin = false }) {
 
               {/* Modal Body */}
               <div className="flex-1 p-5 sm:p-8 overflow-y-auto space-y-4">
-                <div className="bg-amber-50/40 dark:bg-gray-800/40 rounded-2xl p-5 sm:p-6 border border-amber-100/80 dark:border-gray-800 shadow-inner">
-                  <FormattedPrayerText
+                <div className="bg-blue-50/40 dark:bg-gray-800/40 rounded-2xl p-5 sm:p-6 border border-blue-100/80 dark:border-gray-800 shadow-inner">
+                  <FormattedNoticeText
                     text={content}
                     className="text-sm sm:text-base text-gray-800 dark:text-gray-100 leading-relaxed font-sans"
                   />
@@ -319,11 +317,11 @@ export default function PrayerRequests({ isAdmin = false }) {
               {/* Modal Footer */}
               <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/60 flex-shrink-0">
                 <p className="text-[11px] text-gray-400 italic">
-                  "The prayer of a righteous person is powerful and effective." — James 5:16
+                  Prakash Church Community & Notices
                 </p>
                 <button
                   onClick={() => setIsPopupOpen(false)}
-                  className="px-5 py-2 text-xs sm:text-sm font-semibold bg-red-600 text-white hover:bg-red-700 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none active:scale-95"
+                  className="px-5 py-2 text-xs sm:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md shadow-blue-200 dark:shadow-none active:scale-95"
                 >
                   Close
                 </button>

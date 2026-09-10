@@ -7,6 +7,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import ChurchLogin from "./pages/LoginPage";
 import CalendarPage from "./pages/CalendarPage";
 import ReadCalendarPage from "./pages/ReadOnlyCalendarPage";
@@ -64,9 +65,25 @@ function Navigation() {
         <div className="flex gap-6 items-center">
           <button 
             onClick={toggleTheme} 
-            className="p-2 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-800 transition-colors"
+            className="p-2.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50/60 dark:hover:bg-gray-800 transition-all duration-300 active:scale-95"
+            aria-label="Toggle Theme"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={isDarkMode ? "dark" : "light"}
+                initial={{ rotate: -90, scale: 0.6, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0.6, opacity: 0 }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
+              >
+                {isDarkMode ? (
+                  <Sun size={19} className="text-amber-400 fill-amber-400/20" />
+                ) : (
+                  <Moon size={19} className="text-gray-600 fill-gray-600/10" />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </button>
           
           <Link to="/" className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500 transition-colors flex items-center gap-2">
@@ -119,9 +136,19 @@ function Navigation() {
             </Link>
           )}
 
-          <button onClick={toggleTheme} className="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-red-600 active:text-red-600 transition-colors flex-1">
-            {isDarkMode ? <Sun size={22} /> : <Moon size={22} />}
-            <span className="text-[10px] font-medium tracking-wide">Theme</span>
+          <button onClick={toggleTheme} className="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 active:text-amber-500 transition-colors flex-1">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={isDarkMode ? "dark-m" : "light-m"}
+                initial={{ rotate: -90, scale: 0.6, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0.6, opacity: 0 }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
+              >
+                {isDarkMode ? <Sun size={22} className="text-amber-400 fill-amber-400/20" /> : <Moon size={22} className="text-gray-600" />}
+              </motion.div>
+            </AnimatePresence>
+            <span className="text-[10px] font-medium tracking-wide">{isDarkMode ? "Light" : "Dark"}</span>
           </button>
         </div>
       </nav>

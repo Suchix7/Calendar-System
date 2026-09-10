@@ -1,6 +1,7 @@
 import React from "react";
 import ReadOnlyCalendar from "../components/calenderview"; // Ensure capitalization matches your filename
 import PrayerRequests from "../components/PrayerRequests";
+import Notice from "../components/Notice";
 
 const ReadCalendarPage = () => {
   return (
@@ -16,11 +17,14 @@ const ReadCalendarPage = () => {
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 sm:mt-3 max-w-lg mx-auto font-light italic leading-relaxed">
             Join us in fellowship. Keep track of our weekly services, choir
-            rehearsals, and community gatherings.
+            rehearsals, community gatherings, and notices.
           </p>
         </div>
 
-        {/* Prayer Requests Notepad Section at the Top */}
+        {/* Notice Section on top */}
+        <Notice isAdmin={false} />
+
+        {/* Prayer Requests Notepad Section */}
         <PrayerRequests isAdmin={false} />
 
         {/* Calendar Component Wrapper */}
