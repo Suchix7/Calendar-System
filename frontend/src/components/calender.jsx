@@ -81,6 +81,18 @@ export default function AdminCalendar() {
     fetchCalendarData();
   }, []);
 
+  // Lock background scrolling on mobile & desktop when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isModalOpen]);
+
   const debounceTimerRef = useRef(null);
 
   // Update a global section name (Section 1, 2, or 3)
@@ -378,7 +390,7 @@ export default function AdminCalendar() {
   };
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto px-2 sm:px-4">
+    <div className="relative w-full">
       <div className="w-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-gray-100 dark:border-gray-800 shadow-sm relative transition-colors">
         {isFetching && (
           <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
@@ -653,20 +665,20 @@ export default function AdminCalendar() {
       {/* Single-Card Fullscreen Modal - Clean and focused ONLY on the clicked section */}
       <AnimatePresence>
         {isModalOpen && selectedDate && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8 overscroll-contain">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setFullscreenEventIndex(null)}
-              className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-md touch-none"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              className="relative w-full max-w-3xl h-[92vh] sm:h-[85vh] max-h-[850px] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10"
+              className="relative w-full max-w-3xl h-[92dvh] max-h-[92dvh] sm:h-[85vh] sm:max-h-[850px] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10 overscroll-contain"
             >
               {/* Modal Header */}
               <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/60 flex-shrink-0">
@@ -693,7 +705,7 @@ export default function AdminCalendar() {
               </div>
 
               {/* Modal Body: Focuses ONLY on this specific section */}
-              <div className="flex-1 p-4 sm:p-7 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex-1 p-4 sm:p-7 flex flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y">
                 {/* Event Name Input */}
                 <div>
                   <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1 flex items-center justify-between">

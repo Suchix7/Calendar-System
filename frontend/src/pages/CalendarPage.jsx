@@ -20,17 +20,15 @@ const CalendarPage = () => {
           </p>
         </div>
 
-        {/* Notice Section on top */}
-        <Notice isAdmin={true} />
-
-        {/* Prayer Requests Notepad Section */}
-        <PrayerRequests isAdmin={true} />
+        {/* Notice and Prayer Requests Side-by-Side Section */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-6 mb-6 sm:mb-8 items-stretch">
+          <Notice isAdmin={true} />
+          <PrayerRequests isAdmin={true} />
+        </div>
 
         {/* Calendar Component Wrapper */}
-        <div className="flex justify-center">
-          <div className="w-full rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-gray-800 p-2">
-            <Calendar />
-          </div>
+        <div className="w-full">
+          <Calendar />
         </div>
 
         {/* Footer Note */}

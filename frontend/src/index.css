@@ -3,12 +3,15 @@
 
 html {
   transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
 }
 
 body {
   background-color: #FDFCFB;
   color: #1f2937;
   transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .dark body {
@@ -28,4 +31,38 @@ nav, header, footer, div, section, article, aside, main {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 250ms;
 }
+
+/* Mobile drawer and modal scrolling containment */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Mobile touch responsiveness and fast click handling */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Safe area insets for bezel-less mobile screens (iPhone Home indicator & notches) */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0rem);
+}
+
+/* Prevent unwanted iOS auto-zoom on input focus */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+
 

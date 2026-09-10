@@ -21,17 +21,15 @@ const ReadCalendarPage = () => {
           </p>
         </div>
 
-        {/* Notice Section on top */}
-        <Notice isAdmin={false} />
-
-        {/* Prayer Requests Notepad Section */}
-        <PrayerRequests isAdmin={false} />
+        {/* Notice and Prayer Requests Side-by-Side Section */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-6 mb-6 sm:mb-8 items-stretch">
+          <Notice isAdmin={false} />
+          <PrayerRequests isAdmin={false} />
+        </div>
 
         {/* Calendar Component Wrapper */}
-        <div className="flex justify-center">
-          <div className="w-full  rounded-3xl shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)] border border-gray-700 p-2">
-            <ReadOnlyCalendar />
-          </div>
+        <div className="w-full">
+          <ReadOnlyCalendar />
         </div>
 
         {/* Footer Note */}

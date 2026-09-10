@@ -129,6 +129,18 @@ export default function ReadOnlyCalendar() {
     fetchCalendarData();
   }, []);
 
+  // Lock background scrolling on mobile & desktop when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isModalOpen]);
+
   // Helper to extract non-empty events list for any date formatted as { title, details, groups }
   const getPublicEventsList = (date) => {
     if (!date) return [];
@@ -286,7 +298,7 @@ export default function ReadOnlyCalendar() {
   const currentExpandedEvent = activeEventList[activeModalEventIndex] || activeEventList[0] || null;
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto px-2 sm:px-4">
+    <div className="relative w-full">
       <div className="w-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-gray-100 dark:border-gray-800 shadow-sm relative transition-colors">
         {/* Loading Overlay */}
         {isLoading && (
@@ -550,14 +562,14 @@ export default function ReadOnlyCalendar() {
       {/* Full-Screen Modal - Displaying ONLY the expanded card with clickable links & groups */}
       <AnimatePresence>
         {isModalOpen && selectedDate && currentExpandedEvent && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8 overscroll-contain">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-md touch-none"
             />
 
             {/* Modal Content */}
@@ -565,7 +577,7 @@ export default function ReadOnlyCalendar() {
               initial={{ scale: 0.95, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10"
+              className="relative w-full max-w-2xl h-[88dvh] max-h-[88dvh] sm:h-[80vh] sm:max-h-[750px] bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10 overscroll-contain"
             >
               {/* Header */}
               <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/60 flex-shrink-0">
@@ -591,7 +603,7 @@ export default function ReadOnlyCalendar() {
               </div>
 
               {/* Body: Displays ONLY the clicked event with full formatted links & nested groups */}
-              <div className="p-5 sm:p-8 overflow-y-auto space-y-4 flex-1">
+              <div className="p-5 sm:p-8 overflow-y-auto space-y-4 flex-1 overscroll-contain touch-pan-y">
                 <div className="p-5 sm:p-6 rounded-2xl bg-gray-50/70 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/80">
                   <div className="flex items-center gap-2.5 mb-3">
                     <span className="w-7 h-7 rounded-full bg-red-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
