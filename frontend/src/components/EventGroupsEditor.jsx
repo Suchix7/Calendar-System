@@ -17,7 +17,7 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
   const [activeNewItemInput, setActiveNewItemInput] = useState({});
   const [bulkInputMap, setBulkInputMap] = useState({});
   const [showBulkMap, setShowBulkMap] = useState({});
-  const [openGroups, setOpenGroups] = useState({ 0: true });
+  const [openGroups, setOpenGroups] = useState({});
 
   const safeGroups = Array.isArray(groups) ? groups : [];
 
@@ -236,7 +236,7 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
 
                     {/* Names Grid / List */}
                     {items.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         {items.map((item, itIdx) => (
                           <div
                             key={`item-${gIdx}-${itIdx}`}

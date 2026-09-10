@@ -537,7 +537,7 @@ export default function AdminCalendar() {
               </div>
 
               {/* Multiple Event Sections */}
-              <div className="flex-1 flex flex-col space-y-3.5 max-h-[480px] overflow-y-auto pr-0.5">
+              <div className="flex-1 flex flex-col space-y-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                     <Sparkles size={13} className="text-red-500" />

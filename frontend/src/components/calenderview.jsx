@@ -446,7 +446,7 @@ export default function ReadOnlyCalendar() {
           </div>
 
           {searchQuery.trim() ? (
-            <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[460px]">
+            <div className="flex-1 space-y-2.5">
               <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-gray-500 block mb-1">
                 Search Results ({searchResults.length})
               </span>
@@ -500,7 +500,7 @@ export default function ReadOnlyCalendar() {
               </div>
 
               {activeEventList.length > 0 ? (
-                <div className="flex-1 flex flex-col space-y-2.5 max-h-[440px] overflow-y-auto pr-0.5">
+                <div className="flex-1 flex flex-col space-y-2.5">
                   <span className="text-[10px] text-gray-400 dark:text-gray-500">
                     Tap any event card to view its full details
                   </span>
@@ -629,7 +629,7 @@ export default function ReadOnlyCalendar() {
                     <div className="pl-0 sm:pl-9 pt-3">
                       <EventGroupsViewer
                         groups={currentExpandedEvent.groups}
-                        defaultExpanded={true}
+                        defaultExpanded={false}
                       />
                     </div>
                   )}
