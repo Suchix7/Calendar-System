@@ -14,6 +14,14 @@ import {
   Sparkles,
   Edit3,
   Globe,
+  Copy,
+  ClipboardPaste,
+  CalendarPlus,
+  Check,
+  AlertCircle,
+  AlertTriangle,
+  Layers,
+  Info,
 } from "lucide-react";
 import api from "../api/axios";
 import NepaliDate from "nepali-date-converter";
@@ -35,6 +43,46 @@ export default function AdminCalendar() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
+  // Toast / Feedback notification state
+  const [feedback, setFeedback] = useState(null);
+  const feedbackTimeoutRef = useRef(null);
+
+  const showToast = (message, type = "success") => {
+    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    setFeedback({ message, type });
+    feedbackTimeoutRef.current = setTimeout(() => {
+      setFeedback(null);
+    }, 3800);
+  };
+
+  // Section Clipboard state (persisted in localStorage)
+  const [copiedSection, setCopiedSection] = useState(() => {
+    try {
+      const saved = localStorage.getItem("church_copied_event_section");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.details?.trim() || (Array.isArray(parsed.groups) && parsed.groups.length > 0) || parsed.title?.trim())) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  // "Copy to Date" Modal state
+  const [copyToDateModal, setCopyToDateModal] = useState({
+    isOpen: false,
+    sourceIndex: 0,
+    sourceTitle: "",
+    sourceDetails: "",
+    sourceGroups: [],
+    sourceDate: null,
+    targetDate: null,
+    targetMonth: npToday.getMonth(),
+    targetYear: npToday.getYear(),
+    placementMode: "smart", // "smart" | "append" | "replace"
+  });
+
   // Global Section Names (applies to the 3 main event sections across all days)
   const [globalSectionNames, setGlobalSectionNames] = useState(() => {
     try {
@@ -46,7 +94,7 @@ export default function AdminCalendar() {
 
   // Fullscreen Modal state: which event index (or null) is being edited in fullscreen
   const [fullscreenEventIndex, setFullscreenEventIndex] = useState(null);
-  const isModalOpen = fullscreenEventIndex !== null;
+  const isModalOpen = fullscreenEventIndex !== null || copyToDateModal.isOpen;
 
   // Today's AD format string to match against calendar cells
   const todayAdFullDate = useMemo(() => {
@@ -81,7 +129,7 @@ export default function AdminCalendar() {
     fetchCalendarData();
   }, []);
 
-  // Lock background scrolling on mobile & desktop when modal is open
+  // Lock background scrolling when modal is open
   useEffect(() => {
     if (isModalOpen) {
       document.body.style.overflow = "hidden";
@@ -95,44 +143,44 @@ export default function AdminCalendar() {
 
   const debounceTimerRef = useRef(null);
 
-  // Update a global section name (Section 1, 2, or 3)
-  const handleGlobalNameChange = (index, newName) => {
-    if (index < 3) {
-      const updatedGlobal = [...globalSectionNames];
-      while (updatedGlobal.length < 3) {
-        updatedGlobal.push(`Event ${updatedGlobal.length + 1}`);
-      }
-      updatedGlobal[index] = newName;
-      setGlobalSectionNames(updatedGlobal);
-      try {
-        localStorage.setItem("church_global_sections", JSON.stringify(updatedGlobal));
-        // Debounce backend sync
-        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = setTimeout(() => {
-          api.post("/api/settings/global_event_sections", { value: updatedGlobal }).catch(() => {});
-        }, 800);
-      } catch (e) {}
-    } else if (selectedDate) {
-      // 4th+ events are specific to this date
-      const currentList = [...getEventList(selectedDate)];
-      currentList[index] = {
-        ...currentList[index],
-        title: newName,
-      };
-      setNotes((prev) => ({
-        ...prev,
-        [selectedDate]: currentList,
-      }));
+  // Update section title for a specific slot on the selected date
+  const handleSectionTitleChange = (index, newTitle) => {
+    if (!selectedDate) return;
+    const currentList = [...getEventList(selectedDate)];
+    while (currentList.length <= index) {
+      currentList.push({
+        title: `Section ${currentList.length + 1}`,
+        details: "",
+        groups: [],
+      });
     }
+    currentList[index] = {
+      ...currentList[index],
+      title: newTitle,
+    };
+    setNotes((prev) => ({
+      ...prev,
+      [selectedDate]: currentList,
+    }));
+  };
+
+  // Helper to check if a specific event slot is completely empty
+  const isSectionEmpty = (evt, index) => {
+    if (!evt) return true;
+    const hasDetails = typeof evt.details === "string" && evt.details.trim().length > 0;
+    const hasGroups = Array.isArray(evt.groups) && evt.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
+    const defaultTitle = index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`;
+    const hasCustomTitle = typeof evt.title === "string" && evt.title.trim().length > 0 && evt.title.trim() !== defaultTitle;
+    return !hasDetails && !hasGroups && !hasCustomTitle;
   };
 
   // Helper to normalize events for a date into an array of { title, details, groups } with at least 3 slots
   const getEventList = (date) => {
     if (!date) {
       return [
-        { title: globalSectionNames[0] || "Event 1", details: "", groups: [] },
-        { title: globalSectionNames[1] || "Event 2", details: "", groups: [] },
-        { title: globalSectionNames[2] || "Event 3", details: "", groups: [] },
+        { title: globalSectionNames[0] || "Section 1", details: "", groups: [] },
+        { title: globalSectionNames[1] || "Section 2", details: "", groups: [] },
+        { title: globalSectionNames[2] || "Section 3", details: "", groups: [] },
       ];
     }
     const val = notes[date];
@@ -140,10 +188,10 @@ export default function AdminCalendar() {
 
     if (Array.isArray(val)) {
       list = val.map((item, idx) => {
-        const defaultTitle = idx < 3 ? (globalSectionNames[idx] || `Event ${idx + 1}`) : `Event ${idx + 1}`;
+        const defaultTitle = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
         if (typeof item === "object" && item !== null) {
           return {
-            title: idx < 3 ? (globalSectionNames[idx] || defaultTitle) : (item.title || defaultTitle),
+            title: typeof item.title === "string" ? item.title : defaultTitle,
             details: typeof item.details === "string" ? item.details : item.note || "",
             groups: Array.isArray(item.groups) ? item.groups : [],
           };
@@ -158,18 +206,22 @@ export default function AdminCalendar() {
         return { title: defaultTitle, details: "", groups: [] };
       });
     } else if (typeof val === "string" && val.trim().length > 0) {
-      list = [{ title: globalSectionNames[0] || "Event 1", details: val, groups: [] }];
+      list = [{ title: globalSectionNames[0] || "Section 1", details: val, groups: [] }];
     } else if (typeof val === "object" && val !== null) {
       list = [{
-        title: globalSectionNames[0] || val.title || "Event 1",
+        title: typeof val.title === "string" ? val.title : (globalSectionNames[0] || "Section 1"),
         details: typeof val.details === "string" ? val.details : "",
         groups: Array.isArray(val.groups) ? val.groups : [],
       }];
     }
 
-    // Pad to at least 3 items with global section names
+    // Pad to at least 3 items with default section names
     while (list.length < 3) {
-      list.push({ title: globalSectionNames[list.length] || `Event ${list.length + 1}`, details: "", groups: [] });
+      list.push({
+        title: globalSectionNames[list.length] || `Section ${list.length + 1}`,
+        details: "",
+        groups: [],
+      });
     }
 
     return list;
@@ -183,7 +235,7 @@ export default function AdminCalendar() {
       return val.some((item) => {
         if (typeof item === "object" && item !== null) {
           const hasDetails = typeof item.details === "string" && item.details.trim().length > 0;
-          const hasGroups = Array.isArray(item.groups) && item.groups.some((g) => g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0));
+          const hasGroups = Array.isArray(item.groups) && item.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
           return hasDetails || hasGroups;
         }
         return typeof item === "string" && item.trim().length > 0;
@@ -194,7 +246,7 @@ export default function AdminCalendar() {
     }
     if (typeof val === "object" && val !== null) {
       const hasDetails = Boolean(val.details?.trim());
-      const hasGroups = Array.isArray(val.groups) && val.groups.some((g) => g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0));
+      const hasGroups = Array.isArray(val.groups) && val.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
       return hasDetails || hasGroups;
     }
     return false;
@@ -230,7 +282,7 @@ export default function AdminCalendar() {
     if (!selectedDate) return;
     const currentList = [...getEventList(selectedDate)];
     currentList.push({
-      title: `Extra Event ${currentList.length - 2}`,
+      title: `Section ${currentList.length + 1}`,
       details: "",
       groups: [],
     });
@@ -246,7 +298,7 @@ export default function AdminCalendar() {
     if (indexToRemove < 3) {
       // For the first 3 default sections, clear the details and groups
       currentList[indexToRemove] = {
-        title: globalSectionNames[indexToRemove] || `Event ${indexToRemove + 1}`,
+        title: globalSectionNames[indexToRemove] || `Section ${indexToRemove + 1}`,
         details: "",
         groups: [],
       };
@@ -266,10 +318,207 @@ export default function AdminCalendar() {
 
   const handleDateSelect = (fullDate) => {
     setSelectedDate(fullDate);
-    // Smoothly scroll to the admin controls / events section
     setTimeout(() => {
       detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
+  };
+
+  // --- QA Enhanced Copy & Paste Handlers ---
+  const handleCopySection = (index, customData = null) => {
+    if (!selectedDate && !customData) return;
+    const currentList = getEventList(selectedDate);
+    const target = customData || currentList[index];
+    if (!target) return;
+
+    // QA Check: Prevent copying an empty section
+    if (isSectionEmpty(target, index)) {
+      showToast(`Section ${index + 1} is empty. Add notes or roster groups before copying.`, "warning");
+      return;
+    }
+
+    const payload = {
+      title: target.title || (index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`),
+      details: target.details || "",
+      groups: Array.isArray(target.groups)
+        ? target.groups
+            .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
+            .map((g) => ({
+              name: g.name?.trim() || "Group",
+              items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+            }))
+        : [],
+      sourceDate: selectedDate,
+      sourceIndex: index,
+    };
+
+    setCopiedSection(payload);
+    try {
+      localStorage.setItem("church_copied_event_section", JSON.stringify(payload));
+    } catch (e) {}
+
+    showToast(`Copied Section ${index + 1} ("${payload.title}") to clipboard!`, "success");
+  };
+
+  const handlePasteSection = (targetIndex) => {
+    if (!selectedDate) {
+      showToast("Please select a date first to paste into.", "warning");
+      return;
+    }
+    if (!copiedSection) {
+      showToast("Clipboard is empty. Copy an event section first.", "warning");
+      return;
+    }
+
+    const currentList = [...getEventList(selectedDate)];
+    const sectionClone = {
+      title: copiedSection.title,
+      details: copiedSection.details,
+      groups: JSON.parse(JSON.stringify(copiedSection.groups || [])),
+    };
+
+    if (targetIndex !== null && targetIndex !== undefined && targetIndex < currentList.length) {
+      const existingSlot = currentList[targetIndex];
+      const isOccupied = existingSlot && (existingSlot.details?.trim() || (Array.isArray(existingSlot.groups) && existingSlot.groups.length > 0));
+
+      if (isOccupied) {
+        const choice = window.confirm(
+          `Section ${targetIndex + 1} already has notes/roster.\n\nClick OK to OVERWRITE this slot with "${copiedSection.title}", or CANCEL to keep current content.`
+        );
+        if (!choice) return;
+      }
+      currentList[targetIndex] = sectionClone;
+      showToast(`Pasted into Section ${targetIndex + 1}! Click "Save Events" to persist.`, "success");
+    } else {
+      // Append as new section
+      currentList.push(sectionClone);
+      showToast(`Pasted as new extra section ("${sectionClone.title}")! Click "Save Events" to persist.`, "success");
+    }
+
+    setNotes((prev) => ({
+      ...prev,
+      [selectedDate]: currentList,
+    }));
+  };
+
+  // Open the "Copy to Date" Dialog with QA validation
+  const handleOpenCopyToDateModal = (index, customData = null) => {
+    const currentList = getEventList(selectedDate);
+    const target = customData || currentList[index];
+    if (!target) return;
+
+    // QA Check: Prevent opening modal for an empty section
+    if (isSectionEmpty(target, index)) {
+      showToast(`Section ${index + 1} is empty. Add notes or roster groups before copying to another date.`, "warning");
+      return;
+    }
+
+    const sourceTitle = target.title || (index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`);
+
+    setCopyToDateModal({
+      isOpen: true,
+      sourceIndex: index,
+      sourceTitle,
+      sourceDetails: target.details || "",
+      sourceGroups: Array.isArray(target.groups) ? JSON.parse(JSON.stringify(target.groups)) : [],
+      sourceDate: selectedDate,
+      targetDate: null,
+      targetMonth: currentMonth,
+      targetYear: currentYear,
+      placementMode: "smart",
+    });
+  };
+
+  // Execute Copy to Target Date with collision & empty checks
+  const handleExecuteCopyToDate = async () => {
+    const { targetDate, sourceDate, sourceIndex, sourceTitle, sourceDetails, sourceGroups, placementMode } = copyToDateModal;
+    
+    if (!targetDate) {
+      showToast("Please pick a target date on the calendar first.", "warning");
+      return;
+    }
+
+    // QA Check: Prevent copying to the exact same date & slot
+    if (targetDate === sourceDate && placementMode !== "append") {
+      showToast("Target date is the same as source date. Please select a different target date.", "warning");
+      return;
+    }
+
+    const payload = {
+      title: sourceTitle,
+      details: sourceDetails,
+      groups: Array.isArray(sourceGroups)
+        ? sourceGroups
+            .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
+            .map((g) => ({
+              name: g.name?.trim() || "Group",
+              items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+            }))
+        : [],
+    };
+
+    const targetList = [...getEventList(targetDate)];
+
+    if (placementMode === "smart") {
+      // If the corresponding slot index is empty, use it. Otherwise, append as new to avoid overlap!
+      const targetSlot = targetList[sourceIndex];
+      const isOccupied = targetSlot && (targetSlot.details?.trim() || (Array.isArray(targetSlot.groups) && targetSlot.groups.length > 0));
+      if (!isOccupied && sourceIndex < targetList.length) {
+        targetList[sourceIndex] = payload;
+      } else {
+        targetList.push(payload);
+      }
+    } else if (placementMode === "append") {
+      targetList.push(payload);
+    } else if (placementMode === "replace") {
+      targetList[sourceIndex] = payload;
+    }
+
+    const cleanedList = targetList
+      .map((item, idx) => ({
+        title: typeof item.title === "string" && item.title.trim().length > 0
+          ? item.title.trim()
+          : (idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`),
+        details: item.details?.trim() || "",
+        groups: Array.isArray(item.groups)
+          ? item.groups
+              .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
+              .map((g) => ({
+                name: g.name?.trim() || "Group",
+                items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+              }))
+          : [],
+      }))
+      .filter((item, idx) => {
+        const defaultT = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
+        const hasCustomTitle = item.title && item.title !== defaultT && item.title.trim().length > 0;
+        return item.details.length > 0 || (item.groups && item.groups.length > 0) || hasCustomTitle;
+      });
+
+    try {
+      setIsLoading(true);
+      await api.post("/api/events", {
+        date: targetDate,
+        note: cleanedList,
+      });
+
+      setNotes((prev) => ({
+        ...prev,
+        [targetDate]: targetList,
+      }));
+
+      setCopyToDateModal((prev) => ({ ...prev, isOpen: false }));
+      setSelectedDate(targetDate);
+      showToast(`Section copied to ${getSelectedBsDateString(targetDate)} successfully!`, "success");
+
+      setTimeout(() => {
+        detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch (err) {
+      console.error("Copy error:", err);
+      showToast("Failed to copy section to target date. Please try again.", "warning");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -277,10 +526,11 @@ export default function AdminCalendar() {
     setIsLoading(true);
     try {
       const rawList = getEventList(selectedDate);
-      // Clean list: keep items that have details or non-empty groups
       const cleanedList = rawList
         .map((item, idx) => ({
-          title: idx < 3 ? (globalSectionNames[idx] || `Event ${idx + 1}`) : (item.title || `Event ${idx + 1}`),
+          title: typeof item.title === "string" && item.title.trim().length > 0
+            ? item.title.trim()
+            : (idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`),
           details: item.details?.trim() || "",
           groups: Array.isArray(item.groups)
             ? item.groups
@@ -291,17 +541,21 @@ export default function AdminCalendar() {
                 }))
             : [],
         }))
-        .filter((item) => item.details.length > 0 || (item.groups && item.groups.length > 0));
+        .filter((item, idx) => {
+          const defaultT = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
+          const hasCustomTitle = item.title && item.title !== defaultT && item.title.trim().length > 0;
+          return item.details.length > 0 || (item.groups && item.groups.length > 0) || hasCustomTitle;
+        });
 
       await api.post("/api/events", {
         date: selectedDate,
         note: cleanedList,
       });
-      alert("Saved successfully!");
+      showToast("Events saved successfully!", "success");
       setFullscreenEventIndex(null);
     } catch (err) {
       console.error("Save error:", err);
-      alert("Unauthorized or failed to save. Please log in again.");
+      showToast("Unauthorized or failed to save. Please log in again.", "warning");
     } finally {
       setIsLoading(false);
     }
@@ -317,10 +571,10 @@ export default function AdminCalendar() {
       delete updatedNotes[selectedDate];
       setNotes(updatedNotes);
       setFullscreenEventIndex(null);
-      alert("Events deleted!");
+      showToast("All events deleted for this date.", "info");
     } catch (err) {
       console.error("Error deleting:", err);
-      alert(err.response?.data?.error || "Failed to delete.");
+      showToast(err.response?.data?.error || "Failed to delete.", "warning");
     }
   };
 
@@ -389,8 +643,68 @@ export default function AdminCalendar() {
     details: "",
   };
 
+  // Mini-Calendar calculation for "Copy to Date" Dialog
+  const miniModalFirstDay = useMemo(() => {
+    return new NepaliDate(copyToDateModal.targetYear, copyToDateModal.targetMonth, 1).getDay();
+  }, [copyToDateModal.targetYear, copyToDateModal.targetMonth]);
+
+  const miniModalDaysInMonth = useMemo(() => {
+    return new NepaliDate(copyToDateModal.targetYear, copyToDateModal.targetMonth + 1, 0).getDate();
+  }, [copyToDateModal.targetYear, copyToDateModal.targetMonth]);
+
+  const miniModalMonthName = useMemo(() => {
+    return new NepaliDate(copyToDateModal.targetYear, copyToDateModal.targetMonth, 1).format("MMMM", "np");
+  }, [copyToDateModal.targetYear, copyToDateModal.targetMonth]);
+
+  const miniModalYearNp = useMemo(() => {
+    return new NepaliDate(copyToDateModal.targetYear, copyToDateModal.targetMonth, 1).format("YYYY", "np");
+  }, [copyToDateModal.targetYear, copyToDateModal.targetMonth]);
+
+  const handleMiniPrev = () => {
+    setCopyToDateModal((prev) => ({
+      ...prev,
+      targetMonth: prev.targetMonth === 0 ? 11 : prev.targetMonth - 1,
+      targetYear: prev.targetMonth === 0 ? prev.targetYear - 1 : prev.targetYear,
+    }));
+  };
+
+  const handleMiniNext = () => {
+    setCopyToDateModal((prev) => ({
+      ...prev,
+      targetMonth: prev.targetMonth === 11 ? 0 : prev.targetMonth + 1,
+      targetYear: prev.targetMonth === 11 ? prev.targetYear + 1 : prev.targetYear,
+    }));
+  };
+
   return (
     <div className="relative w-full">
+      {/* Toast Notification Banner */}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-4 right-4 z-[120] px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-2.5 text-xs font-semibold backdrop-blur-md transition-all ${
+              feedback.type === "warning"
+                ? "bg-amber-900/95 text-amber-100 border-amber-600"
+                : feedback.type === "info"
+                ? "bg-blue-900/95 text-blue-100 border-blue-600"
+                : "bg-gray-900/95 text-white border-gray-700 dark:bg-red-950/95 dark:border-red-600"
+            }`}
+          >
+            {feedback.type === "warning" ? (
+              <AlertTriangle size={15} className="text-amber-400 flex-shrink-0" />
+            ) : feedback.type === "info" ? (
+              <Info size={15} className="text-blue-400 flex-shrink-0" />
+            ) : (
+              <Check size={15} className="text-emerald-400 flex-shrink-0" />
+            )}
+            <span>{feedback.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="w-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-3 border border-gray-100 dark:border-gray-800 shadow-sm relative transition-colors">
         {isFetching && (
           <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
@@ -543,23 +857,27 @@ export default function AdminCalendar() {
                     <Sparkles size={13} className="text-red-500" />
                     Event Sections
                   </span>
-                  <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                    <Globe size={11} className="text-red-500" /> Global Titles
-                  </span>
+                  {copiedSection && (
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                      <Copy size={10} /> Copied: {copiedSection.title}
+                    </span>
+                  )}
                 </div>
 
                 {selectedEvents.map((evt, index) => {
                   const isGlobalSection = index < 3;
-                  const currentTitle = isGlobalSection
-                    ? (globalSectionNames[index] || `Section ${index + 1}`)
-                    : (evt.title || `Extra Event ${index - 2}`);
+                  const currentTitle = typeof evt.title === "string"
+                    ? evt.title
+                    : (isGlobalSection ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`);
+
+                  const isEmpty = isSectionEmpty(evt, index);
 
                   return (
                     <div
                       key={`event-section-${index}`}
                       className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm focus-within:border-red-400 dark:focus-within:border-red-500 transition-all group"
                     >
-                      {/* Globally Synchronized Event Header */}
+                      {/* Event Header */}
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center">
@@ -569,10 +887,10 @@ export default function AdminCalendar() {
                             <input
                               type="text"
                               value={currentTitle}
-                              onChange={(e) => handleGlobalNameChange(index, e.target.value)}
+                              onChange={(e) => handleSectionTitleChange(index, e.target.value)}
                               placeholder={`Section ${index + 1} Title`}
                               className="w-full text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 bg-transparent border-b border-dashed border-gray-300 dark:border-gray-600 hover:border-red-400 focus:border-red-500 focus:outline-none py-0.5 pr-5 transition-colors placeholder:text-gray-400"
-                              title={isGlobalSection ? "Editing this title updates it globally for all days" : "Title for this specific date"}
+                              title="Click to edit section title"
                             />
                             <Edit3 size={11} className="absolute right-0.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                           </div>
@@ -580,6 +898,41 @@ export default function AdminCalendar() {
 
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button
+                            type="button"
+                            onClick={() => handleCopySection(index, evt)}
+                            className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+                              isEmpty
+                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700"
+                            }`}
+                            title={isEmpty ? "Section is empty (add notes or rosters first)" : "Copy this section's content"}
+                          >
+                            <Copy size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCopyToDateModal(index, evt)}
+                            className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+                              isEmpty
+                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700"
+                            }`}
+                            title={isEmpty ? "Section is empty (add notes or rosters first)" : "Copy this section directly to another date"}
+                          >
+                            <CalendarPlus size={13} />
+                          </button>
+                          {copiedSection && (
+                            <button
+                              type="button"
+                              onClick={() => handlePasteSection(index)}
+                              className="p-1.5 sm:p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg text-emerald-600 dark:text-emerald-400 transition-colors"
+                              title={`Paste copied section ("${copiedSection.title}") into this slot`}
+                            >
+                              <ClipboardPaste size={13} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
                             onClick={() => setFullscreenEventIndex(index)}
                             className="p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             title="Open Fullscreen Expanded View"
@@ -587,6 +940,7 @@ export default function AdminCalendar() {
                             <Maximize2 size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleRemoveEventSlot(index)}
                             className="p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             title={isGlobalSection ? "Clear details for this date" : "Remove this extra event"}
@@ -611,7 +965,35 @@ export default function AdminCalendar() {
                         onChange={(newG) => handleGroupsChange(index, newG)}
                       />
 
-                      <div className="flex justify-end pt-1">
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopySection(index, evt)}
+                            disabled={isEmpty}
+                            className={`text-[10px] flex items-center gap-1 transition-colors ${
+                              isEmpty
+                                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            }`}
+                            title={isEmpty ? "Section is empty" : "Copy section"}
+                          >
+                            <Copy size={10} /> Copy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCopyToDateModal(index, evt)}
+                            disabled={isEmpty}
+                            className={`text-[10px] flex items-center gap-1 transition-colors ${
+                              isEmpty
+                                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                : "text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            }`}
+                            title={isEmpty ? "Section is empty" : "Copy to another date"}
+                          >
+                            <CalendarPlus size={10} /> Copy to Date
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setFullscreenEventIndex(index)}
@@ -624,14 +1006,27 @@ export default function AdminCalendar() {
                   );
                 })}
 
-                {/* + Add Another Event Button */}
-                <button
-                  onClick={handleAddEventSlot}
-                  className="w-full py-3 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-500 rounded-2xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-all flex items-center justify-center gap-2 active:scale-98"
-                >
-                  <Plus size={15} />
-                  Add Another Event Section for this Date
-                </button>
+                {/* + Add Another Event Section Buttons */}
+                <div className="space-y-2">
+                  <button
+                    onClick={handleAddEventSlot}
+                    className="w-full py-2.5 px-4 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-red-400 dark:hover:border-red-500 rounded-2xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-all flex items-center justify-center gap-2 active:scale-98"
+                  >
+                    <Plus size={15} />
+                    Add Another Event Section for this Date
+                  </button>
+
+                  {copiedSection && (
+                    <button
+                      onClick={() => handlePasteSection(null)}
+                      className="w-full py-2.5 px-4 border-2 border-dashed border-emerald-300 dark:border-emerald-800/70 hover:border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 transition-all flex items-center justify-center gap-2 active:scale-98 shadow-xs"
+                      title="Paste the copied section as a new event slot for this date"
+                    >
+                      <ClipboardPaste size={14} />
+                      Paste Copied Section as New Slot ("{copiedSection.title}")
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -662,9 +1057,235 @@ export default function AdminCalendar() {
         </aside>
       </div>
 
-      {/* Single-Card Fullscreen Modal - Clean and focused ONLY on the clicked section */}
+      {/* "Copy Section to Date" Dialog */}
       <AnimatePresence>
-        {isModalOpen && selectedDate && (
+        {copyToDateModal.isOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-6 overscroll-contain">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCopyToDateModal((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-stone-900/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800 z-10 max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/60 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                    <CalendarPlus size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">
+                      Copy Section to Another Date
+                    </h4>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Select target date to duplicate this section with all rosters & notes
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCopyToDateModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+                {/* Source Section Preview Card */}
+                <div className="p-3.5 rounded-2xl bg-red-50/50 dark:bg-red-950/20 border border-red-200/80 dark:border-red-900/40">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 block mb-1">
+                    Section Being Copied (From: {getSelectedBsDateString(copyToDateModal.sourceDate)})
+                  </span>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {copyToDateModal.sourceTitle || "Section"}
+                  </p>
+                  {copyToDateModal.sourceDetails && (
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2 italic">
+                      "{copyToDateModal.sourceDetails}"
+                    </p>
+                  )}
+                  {Array.isArray(copyToDateModal.sourceGroups) && copyToDateModal.sourceGroups.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {copyToDateModal.sourceGroups.map((g, idx) => (
+                        <span
+                          key={`src-grp-${idx}`}
+                          className="text-[10px] bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full border border-red-200/60 dark:border-red-900/40 font-medium"
+                        >
+                          {g.name || "Group"} ({g.items?.length || 0})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Target Date Picker (Interactive Mini Calendar) */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <CalendarIcon size={14} className="text-red-500" /> Select Target Date
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                        {miniModalMonthName} {miniModalYearNp}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={handleMiniPrev}
+                          className="p-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleMiniNext}
+                          className="p-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Days of week */}
+                  <div className="grid grid-cols-7 text-center text-[10px] uppercase font-bold text-gray-400">
+                    {days.map((d, idx) => (
+                      <div key={`mini-day-${d}`} className={idx === 6 ? "text-red-500" : ""}>
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Days grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: miniModalFirstDay }).map((_, i) => (
+                      <div key={`mini-empty-${i}`} />
+                    ))}
+                    {Array.from({ length: miniModalDaysInMonth }, (_, i) => {
+                      const day = i + 1;
+                      const npDate = new NepaliDate(copyToDateModal.targetYear, copyToDateModal.targetMonth, day);
+                      const adObj = npDate.getAD();
+                      const fullDate = `${adObj.year}-${String(adObj.month + 1).padStart(2, "0")}-${String(adObj.date).padStart(2, "0")}`;
+                      const isSelected = copyToDateModal.targetDate === fullDate;
+                      const isSource = copyToDateModal.sourceDate === fullDate;
+                      const hasEvts = checkHasEvent(fullDate);
+
+                      return (
+                        <button
+                          key={`mini-cell-${fullDate}`}
+                          type="button"
+                          onClick={() => setCopyToDateModal((prev) => ({ ...prev, targetDate: fullDate }))}
+                          className={`p-1.5 sm:p-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all relative border ${
+                            isSelected
+                              ? "bg-red-600 text-white border-red-600 shadow-sm"
+                              : isSource
+                              ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800"
+                              : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-100 dark:border-gray-700 hover:border-red-300"
+                          }`}
+                        >
+                          <span className="font-semibold text-xs">{npDate.format("D", "np")}</span>
+                          <span className={`text-[8px] ${isSelected ? "text-red-100" : "text-gray-400"}`}>
+                            {adObj.date}
+                          </span>
+                          {hasEvts && (
+                            <div
+                              className={`w-1 h-1 rounded-full absolute bottom-0.5 left-1/2 -translate-x-1/2 ${
+                                isSelected ? "bg-white" : "bg-green-500"
+                              }`}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Target Placement Settings */}
+                {copyToDateModal.targetDate && (
+                  <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                        <Layers size={13} className="text-red-500" /> Placement Option on Selected Date:
+                      </label>
+                      <span className="text-[11px] font-bold text-red-600 dark:text-red-400">
+                        {getSelectedBsDateString(copyToDateModal.targetDate)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setCopyToDateModal((prev) => ({ ...prev, placementMode: "smart" }))}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          copyToDateModal.placementMode === "smart"
+                            ? "bg-red-50/80 dark:bg-red-950/40 border-red-400 text-red-800 dark:text-red-200 font-semibold shadow-2xs"
+                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-bold mb-0.5">
+                          <Sparkles size={12} className="text-red-500" /> Safe Auto-Place
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
+                          Uses slot {copyToDateModal.sourceIndex + 1} if empty; appends as new event if occupied.
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCopyToDateModal((prev) => ({ ...prev, placementMode: "append" }))}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          copyToDateModal.placementMode === "append"
+                            ? "bg-red-50/80 dark:bg-red-950/40 border-red-400 text-red-800 dark:text-red-200 font-semibold shadow-2xs"
+                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-bold mb-0.5">
+                          <Plus size={12} className="text-red-500" /> Add as New Section
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
+                          Guarantees zero overlap by creating a new extra event slot.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-3.5 sm:p-5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/60 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCopyToDateModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteCopyToDate}
+                  disabled={!copyToDateModal.targetDate || isLoading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-200 dark:shadow-none disabled:opacity-50 active:scale-98"
+                >
+                  <CalendarPlus size={15} />
+                  {isLoading ? "Copying..." : "Copy Section to Selected Date"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Single-Card Fullscreen Modal */}
+      <AnimatePresence>
+        {fullscreenEventIndex !== null && selectedDate && (
           <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8 overscroll-contain">
             {/* Backdrop */}
             <motion.div
@@ -696,15 +1317,52 @@ export default function AdminCalendar() {
                   </h4>
                 </div>
 
-                <button
-                  onClick={() => setFullscreenEventIndex(null)}
-                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCopySection(fullscreenEventIndex ?? 0, activeModalEvent)}
+                    disabled={isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0)}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs ${
+                      isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0)
+                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                        : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                    title={isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0) ? "Section is empty" : "Copy section to clipboard"}
+                  >
+                    <Copy size={15} />
+                    <span className="hidden sm:inline">Copy</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0)) {
+                        showToast("Section is empty. Add notes or rosters first.", "warning");
+                        return;
+                      }
+                      setFullscreenEventIndex(null);
+                      handleOpenCopyToDateModal(fullscreenEventIndex ?? 0, activeModalEvent);
+                    }}
+                    disabled={isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0)}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs ${
+                      isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0)
+                        ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                        : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    }`}
+                    title={isSectionEmpty(activeModalEvent, fullscreenEventIndex ?? 0) ? "Section is empty" : "Copy to another date"}
+                  >
+                    <CalendarPlus size={15} />
+                    <span className="hidden sm:inline">Copy to Date</span>
+                  </button>
+                  <button
+                    onClick={() => setFullscreenEventIndex(null)}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
-              {/* Modal Body: Focuses ONLY on this specific section */}
+              {/* Modal Body */}
               <div className="flex-1 p-4 sm:p-7 flex flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y">
                 {/* Event Name Input */}
                 <div>
@@ -713,21 +1371,18 @@ export default function AdminCalendar() {
                       <Edit3 size={13} className="text-red-500" />
                       Section Title
                     </span>
-                    {(fullscreenEventIndex ?? 0) < 3 && (
-                      <span className="text-[10px] text-gray-400">
-                        (Global title for all days)
-                      </span>
-                    )}
                   </label>
                   <input
                     type="text"
                     value={
-                      (fullscreenEventIndex ?? 0) < 3
-                        ? (globalSectionNames[fullscreenEventIndex ?? 0] || `Section ${(fullscreenEventIndex ?? 0) + 1}`)
-                        : (activeModalEvent.title || `Extra Event ${(fullscreenEventIndex ?? 0) - 2}`)
+                      typeof activeModalEvent.title === "string"
+                        ? activeModalEvent.title
+                        : ((fullscreenEventIndex ?? 0) < 3
+                            ? (globalSectionNames[fullscreenEventIndex ?? 0] || `Section ${(fullscreenEventIndex ?? 0) + 1}`)
+                            : `Section ${(fullscreenEventIndex ?? 0) + 1}`)
                     }
                     onChange={(e) =>
-                      handleGlobalNameChange(fullscreenEventIndex ?? 0, e.target.value)
+                      handleSectionTitleChange(fullscreenEventIndex ?? 0, e.target.value)
                     }
                     placeholder="e.g. Main Worship Service, Sunday School, Youth Fellowship"
                     className="w-full p-3 sm:p-3.5 text-sm sm:text-base font-semibold border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/40 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-900/50 focus:border-red-400 dark:focus:border-gray-600 outline-none text-gray-800 dark:text-gray-100 transition-all"

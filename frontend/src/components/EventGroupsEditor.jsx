@@ -9,6 +9,7 @@ import {
   ListPlus,
   Edit2,
   Check,
+  Edit3,
 } from "lucide-react";
 
 export default function EventGroupsEditor({ groups = [], onChange }) {
@@ -18,6 +19,10 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
   const [bulkInputMap, setBulkInputMap] = useState({});
   const [showBulkMap, setShowBulkMap] = useState({});
   const [openGroups, setOpenGroups] = useState({});
+  
+  // Track which item is currently being edited: key `${groupIndex}-${itemIndex}`
+  const [editingItemKey, setEditingItemKey] = useState(null);
+  const [editingItemValue, setEditingItemValue] = useState("");
 
   const safeGroups = Array.isArray(groups) ? groups : [];
 
@@ -52,6 +57,31 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
     setActiveNewItemInput((prev) => ({ ...prev, [groupIndex]: "" }));
   };
 
+  const handleStartEditItem = (groupIndex, itemIndex, currentText) => {
+    setEditingItemKey(`${groupIndex}-${itemIndex}`);
+    setEditingItemValue(currentText);
+  };
+
+  const handleSaveEditItem = (groupIndex, itemIndex) => {
+    const trimmed = editingItemValue.trim();
+    if (!trimmed) {
+      handleDeleteItem(groupIndex, itemIndex);
+    } else {
+      const updated = [...safeGroups];
+      const items = Array.isArray(updated[groupIndex]?.items) ? [...updated[groupIndex].items] : [];
+      items[itemIndex] = trimmed;
+      updated[groupIndex] = { ...updated[groupIndex], items };
+      onChange(updated);
+    }
+    setEditingItemKey(null);
+    setEditingItemValue("");
+  };
+
+  const handleCancelEditItem = () => {
+    setEditingItemKey(null);
+    setEditingItemValue("");
+  };
+
   const handleBulkAdd = (groupIndex) => {
     const raw = (bulkInputMap[groupIndex] || "").trim();
     if (!raw) return;
@@ -76,6 +106,9 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
     items.splice(itemIndex, 1);
     updated[groupIndex] = { ...updated[groupIndex], items };
     onChange(updated);
+    if (editingItemKey === `${groupIndex}-${itemIndex}`) {
+      setEditingItemKey(null);
+    }
   };
 
   const toggleOpen = (index) => {
@@ -156,13 +189,17 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
                     >
                       {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
-                    <input
-                      type="text"
-                      value={grp.name || ""}
-                      onChange={(e) => handleUpdateGroupName(gIdx, e.target.value)}
-                      placeholder={`Group ${gIdx + 1} Name`}
-                      className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-gray-100 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-red-400 focus:outline-none px-1 py-0.5 flex-1 min-w-0 transition-colors"
-                    />
+                    <div className="relative flex-1 min-w-0 group/grpname flex items-center">
+                      <input
+                        type="text"
+                        value={grp.name || ""}
+                        onChange={(e) => handleUpdateGroupName(gIdx, e.target.value)}
+                        placeholder={`Group ${gIdx + 1} Name`}
+                        className="font-semibold text-xs sm:text-sm text-gray-800 dark:text-gray-100 bg-transparent border-b border-dashed border-gray-300/80 dark:border-gray-600 hover:border-red-400 focus:border-red-500 focus:outline-none px-1 py-0.5 w-full transition-colors"
+                        title="Click to edit group title"
+                      />
+                      <Edit3 size={11} className="text-gray-400 opacity-0 group-hover/grpname:opacity-100 transition-opacity absolute right-1 pointer-events-none" />
+                    </div>
                     <span className="text-[10px] bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600 flex-shrink-0">
                       {items.length} {items.length === 1 ? "name" : "names"}
                     </span>
@@ -237,25 +274,85 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
                     {/* Names Grid / List */}
                     {items.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {items.map((item, itIdx) => (
-                          <div
-                            key={`item-${gIdx}-${itIdx}`}
-                            className="flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/60 text-xs text-gray-800 dark:text-gray-200 group"
-                          >
-                            <span className="w-4 text-[10px] font-semibold text-gray-400 flex-shrink-0">
-                              {itIdx + 1}.
-                            </span>
-                            <span className="flex-1 truncate font-medium">{item}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteItem(gIdx, itIdx)}
-                              className="text-gray-400 hover:text-red-600 p-0.5 rounded opacity-60 group-hover:opacity-100 transition-opacity"
-                              title="Remove name"
+                        {items.map((item, itIdx) => {
+                          const isEditingThisItem = editingItemKey === `${gIdx}-${itIdx}`;
+
+                          if (isEditingThisItem) {
+                            return (
+                              <div
+                                key={`item-${gIdx}-${itIdx}`}
+                                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50/70 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-xs shadow-xs"
+                              >
+                                <span className="w-4 text-[10px] font-semibold text-red-500 flex-shrink-0">
+                                  {itIdx + 1}.
+                                </span>
+                                <input
+                                  type="text"
+                                  value={editingItemValue}
+                                  onChange={(e) => setEditingItemValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditItem(gIdx, itIdx);
+                                    if (e.key === "Escape") handleCancelEditItem();
+                                  }}
+                                  className="flex-1 px-1.5 py-0.5 text-xs bg-white dark:bg-gray-800 border border-red-300 dark:border-gray-600 rounded text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveEditItem(gIdx, itIdx)}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition-colors"
+                                  title="Save changes (Enter)"
+                                >
+                                  <Check size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEditItem}
+                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                                  title="Cancel (Esc)"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={`item-${gIdx}-${itIdx}`}
+                              className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/60 text-xs text-gray-800 dark:text-gray-200 group hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
                             >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
+                              <span className="w-4 text-[10px] font-semibold text-gray-400 flex-shrink-0">
+                                {itIdx + 1}.
+                              </span>
+                              <span
+                                onDoubleClick={() => handleStartEditItem(gIdx, itIdx, item)}
+                                className="flex-1 truncate font-medium cursor-pointer"
+                                title="Double-click to edit"
+                              >
+                                {item}
+                              </span>
+                              <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditItem(gIdx, itIdx, item)}
+                                  className="text-gray-400 hover:text-red-600 p-0.5 rounded hover:bg-gray-200/60 dark:hover:bg-gray-700"
+                                  title="Edit name / role"
+                                >
+                                  <Edit2 size={11} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteItem(gIdx, itIdx)}
+                                  className="text-gray-400 hover:text-red-600 p-0.5 rounded hover:bg-gray-200/60 dark:hover:bg-gray-700"
+                                  title="Remove name"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400 italic py-1">
