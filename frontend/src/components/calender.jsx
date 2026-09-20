@@ -61,7 +61,16 @@ export default function AdminCalendar() {
       const saved = localStorage.getItem("church_copied_event_section");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.details?.trim() || (Array.isArray(parsed.groups) && parsed.groups.length > 0) || parsed.title?.trim())) {
+        const hasDetails = Boolean(parsed?.details?.trim());
+        const hasGroups =
+          Array.isArray(parsed?.groups) &&
+          parsed.groups.some(
+            (g) =>
+              g &&
+              Array.isArray(g.items) &&
+              g.items.some((it) => typeof it === "string" && it.trim().length > 0)
+          );
+        if (parsed && (hasDetails || hasGroups)) {
           return parsed;
         }
       }
@@ -164,14 +173,19 @@ export default function AdminCalendar() {
     }));
   };
 
-  // Helper to check if a specific event slot is completely empty
+  // Helper to check if a specific event slot is completely empty (no notes and no group items)
   const isSectionEmpty = (evt, index) => {
     if (!evt) return true;
     const hasDetails = typeof evt.details === "string" && evt.details.trim().length > 0;
-    const hasGroups = Array.isArray(evt.groups) && evt.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
-    const defaultTitle = index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`;
-    const hasCustomTitle = typeof evt.title === "string" && evt.title.trim().length > 0 && evt.title.trim() !== defaultTitle;
-    return !hasDetails && !hasGroups && !hasCustomTitle;
+    const hasGroups =
+      Array.isArray(evt.groups) &&
+      evt.groups.some(
+        (g) =>
+          g &&
+          Array.isArray(g.items) &&
+          g.items.some((it) => typeof it === "string" && it.trim().length > 0)
+      );
+    return !hasDetails && !hasGroups;
   };
 
   // Helper to normalize events for a date into an array of { title, details, groups } with at least 3 slots
@@ -227,7 +241,7 @@ export default function AdminCalendar() {
     return list;
   };
 
-  // Check if a date has any stored event details or groups
+  // Check if a date has any stored event details or groups with members
   const checkHasEvent = (date) => {
     const val = notes[date];
     if (!val) return false;
@@ -235,7 +249,14 @@ export default function AdminCalendar() {
       return val.some((item) => {
         if (typeof item === "object" && item !== null) {
           const hasDetails = typeof item.details === "string" && item.details.trim().length > 0;
-          const hasGroups = Array.isArray(item.groups) && item.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
+          const hasGroups =
+            Array.isArray(item.groups) &&
+            item.groups.some(
+              (g) =>
+                g &&
+                Array.isArray(g.items) &&
+                g.items.some((it) => typeof it === "string" && it.trim().length > 0)
+            );
           return hasDetails || hasGroups;
         }
         return typeof item === "string" && item.trim().length > 0;
@@ -246,7 +267,14 @@ export default function AdminCalendar() {
     }
     if (typeof val === "object" && val !== null) {
       const hasDetails = Boolean(val.details?.trim());
-      const hasGroups = Array.isArray(val.groups) && val.groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
+      const hasGroups =
+        Array.isArray(val.groups) &&
+        val.groups.some(
+          (g) =>
+            g &&
+            Array.isArray(g.items) &&
+            g.items.some((it) => typeof it === "string" && it.trim().length > 0)
+        );
       return hasDetails || hasGroups;
     }
     return false;
@@ -338,14 +366,16 @@ export default function AdminCalendar() {
 
     const payload = {
       title: target.title || (index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`),
-      details: target.details || "",
+      details: target.details?.trim() || "",
       groups: Array.isArray(target.groups)
         ? target.groups
-            .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
             .map((g) => ({
               name: g.name?.trim() || "Group",
-              items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+              items: Array.isArray(g.items)
+                ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
+                : [],
             }))
+            .filter((g) => g.items.length > 0)
         : [],
       sourceDate: selectedDate,
       sourceIndex: index,
@@ -445,14 +475,16 @@ export default function AdminCalendar() {
 
     const payload = {
       title: sourceTitle,
-      details: sourceDetails,
+      details: sourceDetails?.trim() || "",
       groups: Array.isArray(sourceGroups)
         ? sourceGroups
-            .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
             .map((g) => ({
               name: g.name?.trim() || "Group",
-              items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+              items: Array.isArray(g.items)
+                ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
+                : [],
             }))
+            .filter((g) => g.items.length > 0)
         : [],
     };
 
@@ -461,7 +493,7 @@ export default function AdminCalendar() {
     if (placementMode === "smart") {
       // If the corresponding slot index is empty, use it. Otherwise, append as new to avoid overlap!
       const targetSlot = targetList[sourceIndex];
-      const isOccupied = targetSlot && (targetSlot.details?.trim() || (Array.isArray(targetSlot.groups) && targetSlot.groups.length > 0));
+      const isOccupied = targetSlot && (targetSlot.details?.trim() || (Array.isArray(targetSlot.groups) && targetSlot.groups.some((g) => Array.isArray(g.items) && g.items.length > 0)));
       if (!isOccupied && sourceIndex < targetList.length) {
         targetList[sourceIndex] = payload;
       } else {
@@ -481,18 +513,16 @@ export default function AdminCalendar() {
         details: item.details?.trim() || "",
         groups: Array.isArray(item.groups)
           ? item.groups
-              .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
               .map((g) => ({
                 name: g.name?.trim() || "Group",
-                items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+                items: Array.isArray(g.items)
+                  ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
+                  : [],
               }))
+              .filter((g) => g.items.length > 0)
           : [],
       }))
-      .filter((item, idx) => {
-        const defaultT = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
-        const hasCustomTitle = item.title && item.title !== defaultT && item.title.trim().length > 0;
-        return item.details.length > 0 || (item.groups && item.groups.length > 0) || hasCustomTitle;
-      });
+      .filter((item) => item.details.length > 0 || (item.groups && item.groups.length > 0));
 
     try {
       setIsLoading(true);
@@ -534,18 +564,16 @@ export default function AdminCalendar() {
           details: item.details?.trim() || "",
           groups: Array.isArray(item.groups)
             ? item.groups
-                .filter((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)))
                 .map((g) => ({
                   name: g.name?.trim() || "Group",
-                  items: Array.isArray(g.items) ? g.items.map((it) => it.trim()).filter(Boolean) : [],
+                  items: Array.isArray(g.items)
+                    ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
+                    : [],
                 }))
+                .filter((g) => g.items.length > 0)
             : [],
         }))
-        .filter((item, idx) => {
-          const defaultT = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
-          const hasCustomTitle = item.title && item.title !== defaultT && item.title.trim().length > 0;
-          return item.details.length > 0 || (item.groups && item.groups.length > 0) || hasCustomTitle;
-        });
+        .filter((item) => item.details.length > 0 || (item.groups && item.groups.length > 0));
 
       await api.post("/api/events", {
         date: selectedDate,
@@ -900,9 +928,10 @@ export default function AdminCalendar() {
                           <button
                             type="button"
                             onClick={() => handleCopySection(index, evt)}
+                            disabled={isEmpty}
                             className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                               isEmpty
-                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed"
+                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed opacity-40"
                                 : "text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700"
                             }`}
                             title={isEmpty ? "Section is empty (add notes or rosters first)" : "Copy this section's content"}
@@ -912,9 +941,10 @@ export default function AdminCalendar() {
                           <button
                             type="button"
                             onClick={() => handleOpenCopyToDateModal(index, evt)}
+                            disabled={isEmpty}
                             className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                               isEmpty
-                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed"
+                                ? "text-gray-300 dark:text-gray-600 hover:text-gray-500 cursor-not-allowed opacity-40"
                                 : "text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700"
                             }`}
                             title={isEmpty ? "Section is empty (add notes or rosters first)" : "Copy this section directly to another date"}
