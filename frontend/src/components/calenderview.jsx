@@ -568,7 +568,7 @@ export default function ReadOnlyCalendar() {
                     <div className="pl-0 sm:pl-9 pt-3">
                       <EventGroupsViewer
                         groups={currentExpandedEvent.groups}
-                        defaultExpanded={true}
+                        defaultExpanded={false}
                       />
                     </div>
                   )}
