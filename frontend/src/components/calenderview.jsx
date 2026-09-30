@@ -17,84 +17,8 @@ import api from "../api/axios";
 import NepaliDate from "nepali-date-converter";
 import DailyVerse from "./DailyVerse";
 import EventGroupsViewer from "./EventGroupsViewer";
+import FormattedText from "./FormattedText";
 
-// Helper component to format text with clickable links (Markdown [Title](URL) & Raw URLs)
-function FormattedText({ text, className = "" }) {
-  if (!text) return null;
-
-  const parseContent = (content) => {
-    const regex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|www\.[^\s)]+)\)|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    const elements = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-
-      // Text before match
-      if (matchStart > lastIndex) {
-        elements.push(content.substring(lastIndex, matchStart));
-      }
-
-      if (match[1] && match[2]) {
-        // Markdown format [Label](URL)
-        const label = match[1];
-        let url = match[2];
-        if (url.startsWith("www.")) url = "https://" + url;
-        elements.push(
-          <a
-            key={`md-link-${matchStart}`}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-red-600 dark:text-red-400 font-semibold underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 break-all inline-flex items-center gap-0.5 mx-0.5 cursor-pointer"
-          >
-            {label}
-            <ExternalLink size={12} className="inline flex-shrink-0" />
-          </a>
-        );
-      } else if (match[3]) {
-        // Plain URL
-        let url = match[3];
-        let displayUrl = url;
-        if (url.endsWith(".") || url.endsWith(",") || url.endsWith(")")) {
-          url = url.slice(0, -1);
-          displayUrl = url;
-        }
-        const href = url.startsWith("www.") ? `https://${url}` : url;
-        elements.push(
-          <a
-            key={`raw-url-${matchStart}`}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-red-600 dark:text-red-400 font-semibold underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 break-all inline-flex items-center gap-0.5 mx-0.5 cursor-pointer"
-          >
-            {displayUrl}
-            <ExternalLink size={12} className="inline flex-shrink-0" />
-          </a>
-        );
-      }
-
-      lastIndex = matchEnd;
-    }
-
-    if (lastIndex < content.length) {
-      elements.push(content.substring(lastIndex));
-    }
-
-    return elements;
-  };
-
-  return (
-    <div className={`whitespace-pre-wrap ${className}`}>
-      {parseContent(text)}
-    </div>
-  );
-}
 
 export default function ReadOnlyCalendar() {
   const detailsRef = useRef(null);
@@ -153,8 +77,13 @@ export default function ReadOnlyCalendar() {
             const rawTitle = typeof item.title === "string" ? item.title.trim() : "";
             const title = rawTitle || `Event ${idx + 1}`;
             const groups = Array.isArray(item.groups) ? item.groups : [];
-            const hasGroups = groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
-            const isMeaningful = details.length > 0 || hasGroups || (rawTitle.length > 0 && rawTitle !== `Event ${idx + 1}`);
+            const hasGroups = groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.some((it) => typeof it === "string" && it.trim().length > 0))));
+            
+            // Check if title is custom / meaningful (e.g. contains song title, url, or is not an empty generic default)
+            const isGenericDefaultTitle = !rawTitle || /^Section\s*\d+$/i.test(rawTitle) || /^Event\s*\d+$/i.test(rawTitle);
+            const hasMeaningfulTitle = rawTitle.length > 0 && !isGenericDefaultTitle;
+            const isMeaningful = details.length > 0 || hasGroups || hasMeaningfulTitle || (idx >= 3 && rawTitle.length > 0);
+            
             if (!isMeaningful) return null;
             return { title, details, groups };
           }
@@ -174,10 +103,12 @@ export default function ReadOnlyCalendar() {
     }
     if (typeof val === "object" && val !== null) {
       const details = (typeof val.details === "string" ? val.details : "").trim();
-      const title = (typeof val.title === "string" ? val.title.trim() : "") || "Event 1";
+      const rawTitle = typeof val.title === "string" ? val.title.trim() : "";
+      const title = rawTitle || "Event 1";
       const groups = Array.isArray(val.groups) ? val.groups : [];
-      const hasGroups = groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.length > 0)));
-      if (details.length > 0 || hasGroups || (typeof val.title === "string" && val.title.trim().length > 0 && title !== "Event 1")) {
+      const hasGroups = groups.some((g) => g && (g.name?.trim() || (Array.isArray(g.items) && g.items.some((it) => typeof it === "string" && it.trim().length > 0))));
+      const isGenericDefaultTitle = !rawTitle || /^Section\s*\d+$/i.test(rawTitle) || /^Event\s*\d+$/i.test(rawTitle);
+      if (details.length > 0 || hasGroups || (!isGenericDefaultTitle && rawTitle.length > 0)) {
         return [{ title, details, groups }];
       }
     }
@@ -469,9 +400,13 @@ export default function ReadOnlyCalendar() {
                           key={`search-evt-${idx}`}
                           className="text-xs bg-gray-50 dark:bg-gray-900/60 p-2 rounded-lg border border-gray-100/80 dark:border-gray-700/50"
                         >
-                          <p className="font-semibold text-gray-800 dark:text-gray-200">{evt.title}</p>
+                          <p className="font-semibold text-gray-800 dark:text-gray-200">
+                            <FormattedText text={evt.title} />
+                          </p>
                           {evt.details && (
-                            <FormattedText text={evt.details} className="text-gray-600 dark:text-gray-400 line-clamp-2 mt-0.5" />
+                            <div className="text-gray-600 dark:text-gray-400 mt-0.5">
+                              <FormattedText text={evt.details} />
+                            </div>
                           )}
                         </div>
                       ))}
@@ -504,41 +439,46 @@ export default function ReadOnlyCalendar() {
                   <span className="text-[10px] text-gray-400 dark:text-gray-500">
                     Tap any event card to view its full details
                   </span>
-                  {activeEventList.map((evt, idx) => (
-                    <div
-                      key={`pub-event-${idx}`}
-                      onClick={() => openCardExpand(idx)}
-                      className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/90 dark:border-gray-700 shadow-sm hover:border-red-400 dark:hover:border-red-700 hover:shadow-md transition-all group cursor-pointer active:scale-98"
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-[11px] font-bold flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-xs sm:text-sm truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
-                            {evt.title}
-                          </h4>
+                  {activeEventList.map((evt, idx) => {
+                    const hasMoreInfo = evt.details || (evt.groups && evt.groups.length > 0);
+
+                    return (
+                      <div
+                        key={`pub-event-${idx}`}
+                        onClick={() => openCardExpand(idx)}
+                        className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/90 dark:border-gray-700 shadow-sm hover:border-red-400 dark:hover:border-red-700 hover:shadow-md transition-all group cursor-pointer active:scale-98"
+                      >
+                        <div className={`flex items-start justify-between gap-2 ${hasMoreInfo ? "mb-1.5" : ""}`}>
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-[11px] font-bold flex items-center justify-center mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-xs sm:text-sm break-words flex-1 leading-snug group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                              <FormattedText text={evt.title} />
+                            </h4>
+                          </div>
+                          <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors flex-shrink-0">
+                            <Maximize2 size={13} />
+                          </div>
                         </div>
-                        <div className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors flex-shrink-0">
-                          <Maximize2 size={13} />
-                        </div>
+
+                        {evt.details && (
+                          <div className="pl-7 text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mt-1 line-clamp-3">
+                            <FormattedText text={evt.details} />
+                          </div>
+                        )}
+
+                        {evt.groups && evt.groups.length > 0 && (
+                          <div className="pl-0 sm:pl-7 pt-1">
+                            <EventGroupsViewer
+                              groups={evt.groups}
+                              defaultExpanded={false}
+                            />
+                          </div>
+                        )}
                       </div>
-                      {evt.details && (
-                        <FormattedText
-                          text={evt.details}
-                          className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed pl-6 line-clamp-3"
-                        />
-                      )}
-                      {evt.groups && evt.groups.length > 0 && (
-                        <div className="pl-6 pt-1">
-                          <EventGroupsViewer
-                            groups={evt.groups}
-                            defaultExpanded={false}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex-1 p-6 rounded-2xl bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 text-center flex flex-col items-center justify-center py-8">
@@ -605,21 +545,20 @@ export default function ReadOnlyCalendar() {
               {/* Body: Displays ONLY the clicked event with full formatted links & nested groups */}
               <div className="p-5 sm:p-8 overflow-y-auto space-y-4 flex-1 overscroll-contain touch-pan-y">
                 <div className="p-5 sm:p-6 rounded-2xl bg-gray-50/70 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/80">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <span className="w-7 h-7 rounded-full bg-red-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-start gap-2.5 mb-3">
+                    <span className="w-7 h-7 rounded-full bg-red-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
                       {activeModalEventIndex + 1}
                     </span>
-                    <h5 className="font-serif font-semibold text-gray-900 dark:text-gray-100 text-lg sm:text-xl">
-                      {currentExpandedEvent.title}
+                    <h5 className="font-serif font-semibold text-gray-900 dark:text-gray-100 text-lg sm:text-xl break-words flex-1 leading-snug">
+                      <FormattedText text={currentExpandedEvent.title} />
                     </h5>
                   </div>
                   {currentExpandedEvent.details ? (
-                    <FormattedText
-                      text={currentExpandedEvent.details}
-                      className="text-gray-800 dark:text-gray-200 text-base sm:text-lg leading-relaxed pl-9"
-                    />
+                    <div className="text-gray-800 dark:text-gray-200 text-base sm:text-lg leading-relaxed pl-0 sm:pl-9 break-words">
+                      <FormattedText text={currentExpandedEvent.details} />
+                    </div>
                   ) : !currentExpandedEvent.groups || currentExpandedEvent.groups.length === 0 ? (
-                    <p className="text-gray-400 dark:text-gray-500 italic pl-9 text-sm">
+                    <p className="text-gray-400 dark:text-gray-500 italic pl-0 sm:pl-9 text-sm">
                       No additional notes for this event.
                     </p>
                   ) : null}
@@ -629,7 +568,7 @@ export default function ReadOnlyCalendar() {
                     <div className="pl-0 sm:pl-9 pt-3">
                       <EventGroupsViewer
                         groups={currentExpandedEvent.groups}
-                        defaultExpanded={false}
+                        defaultExpanded={true}
                       />
                     </div>
                   )}

@@ -173,7 +173,7 @@ export default function AdminCalendar() {
     }));
   };
 
-  // Helper to check if a specific event slot is completely empty (no notes and no group items)
+  // Helper to check if a specific event slot is completely empty (no notes, no group items, and no custom title)
   const isSectionEmpty = (evt, index) => {
     if (!evt) return true;
     const hasDetails = typeof evt.details === "string" && evt.details.trim().length > 0;
@@ -185,7 +185,10 @@ export default function AdminCalendar() {
           Array.isArray(g.items) &&
           g.items.some((it) => typeof it === "string" && it.trim().length > 0)
       );
-    return !hasDetails && !hasGroups;
+    const defaultTitle = index < 3 ? (globalSectionNames[index] || `Section ${index + 1}`) : `Section ${index + 1}`;
+    const rawTitle = typeof evt.title === "string" ? evt.title.trim() : "";
+    const hasCustomTitle = rawTitle.length > 0 && rawTitle !== defaultTitle && !/^Section\s*\d+$/i.test(rawTitle);
+    return !hasDetails && !hasGroups && !hasCustomTitle;
   };
 
   // Helper to normalize events for a date into an array of { title, details, groups } with at least 3 slots
@@ -241,12 +244,12 @@ export default function AdminCalendar() {
     return list;
   };
 
-  // Check if a date has any stored event details or groups with members
+  // Check if a date has any stored event details or groups with members or custom title
   const checkHasEvent = (date) => {
     const val = notes[date];
     if (!val) return false;
     if (Array.isArray(val)) {
-      return val.some((item) => {
+      return val.some((item, idx) => {
         if (typeof item === "object" && item !== null) {
           const hasDetails = typeof item.details === "string" && item.details.trim().length > 0;
           const hasGroups =
@@ -257,7 +260,10 @@ export default function AdminCalendar() {
                 Array.isArray(g.items) &&
                 g.items.some((it) => typeof it === "string" && it.trim().length > 0)
             );
-          return hasDetails || hasGroups;
+          const defaultTitle = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
+          const rawTitle = typeof item.title === "string" ? item.title.trim() : "";
+          const hasCustomTitle = rawTitle.length > 0 && rawTitle !== defaultTitle && !/^Section\s*\d+$/i.test(rawTitle);
+          return hasDetails || hasGroups || hasCustomTitle;
         }
         return typeof item === "string" && item.trim().length > 0;
       });
@@ -275,7 +281,9 @@ export default function AdminCalendar() {
             Array.isArray(g.items) &&
             g.items.some((it) => typeof it === "string" && it.trim().length > 0)
         );
-      return hasDetails || hasGroups;
+      const rawTitle = typeof val.title === "string" ? val.title.trim() : "";
+      const hasCustomTitle = rawTitle.length > 0 && !/^Section\s*\d+$/i.test(rawTitle) && !/^Event\s*\d+$/i.test(rawTitle);
+      return hasDetails || hasGroups || hasCustomTitle;
     }
     return false;
   };
@@ -506,12 +514,12 @@ export default function AdminCalendar() {
     }
 
     const cleanedList = targetList
-      .map((item, idx) => ({
-        title: typeof item.title === "string" && item.title.trim().length > 0
-          ? item.title.trim()
-          : (idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`),
-        details: item.details?.trim() || "",
-        groups: Array.isArray(item.groups)
+      .map((item, idx) => {
+        const defaultTitle = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
+        const rawTitle = typeof item.title === "string" ? item.title.trim() : "";
+        const title = rawTitle || defaultTitle;
+        const details = typeof item.details === "string" ? item.details.trim() : "";
+        const groups = Array.isArray(item.groups)
           ? item.groups
               .map((g) => ({
                 name: g.name?.trim() || "Group",
@@ -519,10 +527,16 @@ export default function AdminCalendar() {
                   ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
                   : [],
               }))
-              .filter((g) => g.items.length > 0)
-          : [],
-      }))
-      .filter((item) => item.details.length > 0 || (item.groups && item.groups.length > 0));
+              .filter((g) => (g.name && g.name.trim().length > 0) || g.items.length > 0)
+          : [];
+        const hasCustomTitle = rawTitle.length > 0 && rawTitle !== defaultTitle && !/^Section\s*\d+$/i.test(rawTitle);
+        const hasDetails = details.length > 0;
+        const hasGroups = groups.some((g) => g.items.length > 0 || (g.name && g.name.trim().length > 0));
+        const shouldKeep = hasDetails || hasGroups || hasCustomTitle || (idx >= 3 && rawTitle.length > 0);
+
+        return shouldKeep ? { title, details, groups } : null;
+      })
+      .filter(Boolean);
 
     try {
       setIsLoading(true);
@@ -557,12 +571,12 @@ export default function AdminCalendar() {
     try {
       const rawList = getEventList(selectedDate);
       const cleanedList = rawList
-        .map((item, idx) => ({
-          title: typeof item.title === "string" && item.title.trim().length > 0
-            ? item.title.trim()
-            : (idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`),
-          details: item.details?.trim() || "",
-          groups: Array.isArray(item.groups)
+        .map((item, idx) => {
+          const defaultTitle = idx < 3 ? (globalSectionNames[idx] || `Section ${idx + 1}`) : `Section ${idx + 1}`;
+          const rawTitle = typeof item.title === "string" ? item.title.trim() : "";
+          const title = rawTitle || defaultTitle;
+          const details = typeof item.details === "string" ? item.details.trim() : "";
+          const groups = Array.isArray(item.groups)
             ? item.groups
                 .map((g) => ({
                   name: g.name?.trim() || "Group",
@@ -570,10 +584,16 @@ export default function AdminCalendar() {
                     ? g.items.map((it) => (typeof it === "string" ? it.trim() : "")).filter(Boolean)
                     : [],
                 }))
-                .filter((g) => g.items.length > 0)
-            : [],
-        }))
-        .filter((item) => item.details.length > 0 || (item.groups && item.groups.length > 0));
+                .filter((g) => (g.name && g.name.trim().length > 0) || g.items.length > 0)
+            : [];
+          const hasCustomTitle = rawTitle.length > 0 && rawTitle !== defaultTitle && !/^Section\s*\d+$/i.test(rawTitle);
+          const hasDetails = details.length > 0;
+          const hasGroups = groups.some((g) => g.items.length > 0 || (g.name && g.name.trim().length > 0));
+          const shouldKeep = hasDetails || hasGroups || hasCustomTitle || (idx >= 3 && rawTitle.length > 0);
+
+          return shouldKeep ? { title, details, groups } : null;
+        })
+        .filter(Boolean);
 
       await api.post("/api/events", {
         date: selectedDate,

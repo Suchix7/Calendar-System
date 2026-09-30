@@ -1,72 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, ChevronDown, ChevronRight, User, ExternalLink } from "lucide-react";
-
-// Helper to render links in name/item strings
-function FormattedItemText({ text }) {
-  if (!text) return null;
-  const regex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|www\.[^\s)]+)\)|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-  const elements = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    const matchStart = match.index;
-    const matchEnd = regex.lastIndex;
-
-    if (matchStart > lastIndex) {
-      elements.push(text.substring(lastIndex, matchStart));
-    }
-
-    if (match[1] && match[2]) {
-      const label = match[1];
-      let url = match[2];
-      if (url.startsWith("www.")) url = "https://" + url;
-      elements.push(
-        <a
-          key={`link-${matchStart}`}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="text-red-600 dark:text-red-400 underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 inline-flex items-center gap-0.5 mx-0.5"
-        >
-          {label}
-          <ExternalLink size={10} className="inline flex-shrink-0" />
-        </a>
-      );
-    } else if (match[3]) {
-      let url = match[3];
-      let displayUrl = url;
-      if (url.endsWith(".") || url.endsWith(",") || url.endsWith(")")) {
-        url = url.slice(0, -1);
-        displayUrl = url;
-      }
-      const href = url.startsWith("www.") ? `https://${url}` : url;
-      elements.push(
-        <a
-          key={`raw-${matchStart}`}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="text-red-600 dark:text-red-400 underline underline-offset-2 hover:text-red-700 dark:hover:text-red-300 inline-flex items-center gap-0.5 mx-0.5"
-        >
-          {displayUrl}
-          <ExternalLink size={10} className="inline flex-shrink-0" />
-        </a>
-      );
-    }
-
-    lastIndex = matchEnd;
-  }
-
-  if (lastIndex < text.length) {
-    elements.push(text.substring(lastIndex));
-  }
-
-  return <span>{elements}</span>;
-}
+import { Users, ChevronDown, ChevronRight } from "lucide-react";
+import FormattedText from "./FormattedText";
 
 export default function EventGroupsViewer({ groups = [], defaultExpanded = false }) {
   const [expandedMap, setExpandedMap] = useState({});
@@ -89,7 +24,7 @@ export default function EventGroupsViewer({ groups = [], defaultExpanded = false
   };
 
   return (
-    <div className="mt-3 space-y-2">
+    <div className="mt-3 space-y-2.5">
       {validGroups.map((group, gIdx) => {
         const isExpanded = expandedMap[gIdx] !== undefined ? expandedMap[gIdx] : defaultExpanded;
         const items = Array.isArray(group.items) ? group.items.filter((it) => typeof it === "string" && it.trim().length > 0) : [];
@@ -106,15 +41,15 @@ export default function EventGroupsViewer({ groups = [], defaultExpanded = false
               onClick={(e) => toggleGroup(gIdx, e)}
               className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-center justify-between gap-2 text-left hover:bg-gray-100/70 dark:hover:bg-gray-700/40 transition-colors focus:outline-none"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="w-6 h-6 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
                   <Users size={13} />
                 </div>
-                <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                  {groupTitle}
+                <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 break-words flex-1">
+                  <FormattedText text={groupTitle} />
                 </span>
                 <span className="text-[10px] sm:text-[11px] font-medium bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700 shadow-xs flex-shrink-0">
-                  {items.length} {items.length === 1 ? "name" : "names"}
+                  {items.length} {items.length === 1 ? "item" : "items"}
                 </span>
               </div>
 
@@ -136,26 +71,26 @@ export default function EventGroupsViewer({ groups = [], defaultExpanded = false
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="p-2.5 sm:p-3 pt-1 border-t border-gray-100 dark:border-gray-700/60 bg-white/60 dark:bg-gray-900/40">
+                  <div className="p-2.5 sm:p-3 pt-1.5 border-t border-gray-100 dark:border-gray-700/60 bg-white/60 dark:bg-gray-900/40">
                     {items.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {items.map((name, nIdx) => (
                           <div
                             key={`item-${gIdx}-${nIdx}`}
-                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 text-xs text-gray-700 dark:text-gray-300 shadow-2xs"
+                            className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/60 text-xs text-gray-700 dark:text-gray-300 shadow-2xs break-words"
                           >
-                            <div className="w-4 h-4 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+                            <div className="w-4 h-4 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
                               {nIdx + 1}
                             </div>
-                            <span className="truncate flex-1 font-medium">
-                              <FormattedItemText text={name} />
+                            <span className="flex-1 font-medium break-words leading-relaxed">
+                              <FormattedText text={name} />
                             </span>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400 italic py-1 px-2">
-                        No names listed in this group yet.
+                        No items or names listed in this section yet.
                       </p>
                     )}
                   </div>

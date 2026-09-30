@@ -171,7 +171,7 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
       {safeGroups.length > 0 ? (
         <div className="space-y-2.5">
           {safeGroups.map((grp, gIdx) => {
-            const isOpen = openGroups[gIdx] ?? true;
+            const isOpen = openGroups[gIdx] ?? false;
             const items = Array.isArray(grp.items) ? grp.items : [];
 
             return (
@@ -180,7 +180,7 @@ export default function EventGroupsEditor({ groups = [], onChange }) {
                 className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 overflow-hidden shadow-xs"
               >
                 {/* Group Top Header Bar */}
-                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
+                <div className={`px-3 py-2 bg-gray-50 dark:bg-gray-800/60 flex items-center justify-between gap-2 ${isOpen ? "border-b border-gray-100 dark:border-gray-700" : ""}`}>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <button
                       type="button"

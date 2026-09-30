@@ -11,77 +11,8 @@ import {
   BellRing,
 } from "lucide-react";
 import api from "../api/axios";
+import FormattedText from "./FormattedText";
 
-// Formatter to render clickable links in notices
-function FormattedNoticeText({ text, className = "" }) {
-  if (!text) return null;
-
-  const parseContent = (content) => {
-    const regex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|www\.[^\s)]+)\)|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    const elements = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      const matchStart = match.index;
-      const matchEnd = regex.lastIndex;
-
-      if (matchStart > lastIndex) {
-        elements.push(content.substring(lastIndex, matchStart));
-      }
-
-      if (match[1] && match[2]) {
-        const label = match[1];
-        let url = match[2];
-        if (url.startsWith("www.")) url = "https://" + url;
-        elements.push(
-          <a
-            key={`notice-link-${matchStart}`}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300 break-all inline-flex items-center gap-0.5 mx-0.5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {label}
-            <ExternalLink size={12} className="inline flex-shrink-0" />
-          </a>
-        );
-      } else if (match[3]) {
-        let url = match[3];
-        let displayUrl = url;
-        if (url.endsWith(".") || url.endsWith(",") || url.endsWith(")")) {
-          url = url.slice(0, -1);
-          displayUrl = url;
-        }
-        const href = url.startsWith("www.") ? `https://${url}` : url;
-        elements.push(
-          <a
-            key={`notice-raw-${matchStart}`}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2 hover:text-blue-700 dark:hover:text-blue-300 break-all inline-flex items-center gap-0.5 mx-0.5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {displayUrl}
-            <ExternalLink size={12} className="inline flex-shrink-0" />
-          </a>
-        );
-      }
-
-      lastIndex = matchEnd;
-    }
-
-    if (lastIndex < content.length) {
-      elements.push(content.substring(lastIndex));
-    }
-
-    return elements;
-  };
-
-  return <div className={`whitespace-pre-wrap ${className}`}>{parseContent(text)}</div>;
-}
 
 export default function Notice({ isAdmin = false }) {
   const [content, setContent] = useState("");
@@ -247,7 +178,7 @@ export default function Notice({ isAdmin = false }) {
           ) : content.trim() ? (
             /* Display View - Clean card that expands on click */
             <div className="h-full flex items-center bg-white/80 dark:bg-gray-800/60 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-blue-100 dark:border-gray-800/80 shadow-sm transition-all">
-              <FormattedNoticeText
+              <FormattedText
                 text={content}
                 className="text-[11px] sm:text-xs md:text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-sans line-clamp-3 sm:line-clamp-4"
               />
@@ -321,7 +252,7 @@ export default function Notice({ isAdmin = false }) {
               {/* Modal Body */}
               <div className="flex-1 p-5 sm:p-8 overflow-y-auto space-y-4 overscroll-contain touch-pan-y">
                 <div className="bg-blue-50/40 dark:bg-gray-800/40 rounded-2xl p-5 sm:p-6 border border-blue-100/80 dark:border-gray-800 shadow-inner">
-                  <FormattedNoticeText
+                  <FormattedText
                     text={content}
                     className="text-sm sm:text-base text-gray-800 dark:text-gray-100 leading-relaxed font-sans"
                   />
